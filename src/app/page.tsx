@@ -1,103 +1,361 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import * as THREE from 'three';
+import EarthGlobe from '../components/EarthGlobe';
+import CitySearch from '../components/CitySearch';
+import CityLabel from '../components/CityLabel';
+import BridgePath from '../components/BridgePath';
+import AnimatedStars from '../components/AnimatedStars';
+import ScrambleText from '../components/ScrambleText';
+import { BridgeModelProvider } from '../components/BridgeModelLoader';
+import { latLngToVector3, getGreatCirclePoints } from '../utils/sphereMath';
+
+interface City {
+  name: string;
+  lat: number;
+  lng: number;
+  country: string;
+  distance: number; // Distance to San Francisco in kilometers
+}
+
+// Camera controller component for smooth transitions
+function CameraController({ 
+  targetCity, 
+  bridgeCount, 
+  maxBridges, 
+  sanFrancisco,
+  isLocked
+}: { 
+  targetCity: City | null; 
+  bridgeCount: number; 
+  maxBridges: number; 
+  sanFrancisco: { lat: number; lng: number };
+  isLocked: boolean;
+}) {
+  const { camera } = useThree();
+  const controlsRef = useRef<any>(null);
+  const targetPositionRef = useRef(new THREE.Vector3());
+  const targetLookAtRef = useRef(new THREE.Vector3());
+  const currentPositionRef = useRef(new THREE.Vector3());
+  const currentLookAtRef = useRef(new THREE.Vector3());
+  const lastProgressRef = useRef(0);
+  const transitionSpeedRef = useRef(0.008); // Very slow for ultra-smooth movement
+  const bridgePointsRef = useRef<Array<{ lat: number; lng: number }>>([]);
+  
+  // Initialize bridge points once when target city changes
+  useEffect(() => {
+    if (targetCity) {
+      bridgePointsRef.current = getGreatCirclePoints(
+        targetCity.lat, 
+        targetCity.lng, 
+        sanFrancisco.lat, 
+        sanFrancisco.lng, 
+        50 // Many more points for ultra-smooth interpolation
+      );
+    }
+  }, [targetCity, sanFrancisco.lat, sanFrancisco.lng]);
+  
+  useFrame(() => {
+    if (!targetCity || !controlsRef.current || bridgePointsRef.current.length === 0) return;
+    
+    // Only apply camera following when locked
+    if (isLocked) {
+      // Calculate progress (0 to 1) with smoothing
+      const rawProgress = maxBridges > 0 ? bridgeCount / maxBridges : 0;
+      
+      // Smooth progress changes to prevent jitter
+      const progressDiff = rawProgress - lastProgressRef.current;
+      const smoothedProgress = lastProgressRef.current + (progressDiff * 0.1); // Very gradual change
+      lastProgressRef.current = smoothedProgress;
+      
+      // Calculate position along the bridge path with smooth interpolation
+      const totalPoints = bridgePointsRef.current.length - 1;
+      const exactIndex = smoothedProgress * totalPoints;
+      const index1 = Math.floor(exactIndex);
+      const index2 = Math.min(index1 + 1, totalPoints);
+      const t = exactIndex - index1; // Interpolation factor
+      
+      const point1 = bridgePointsRef.current[index1];
+      const point2 = bridgePointsRef.current[index2];
+      
+      if (point1 && point2) {
+        // Smooth interpolation between two points
+        const lat = point1.lat + (point2.lat - point1.lat) * t;
+        const lng = point1.lng + (point2.lng - point1.lng) * t;
+        const currentPos = latLngToVector3(lat, lng, 3.1);
+        
+        // Position camera slightly to the side to see bridge profile
+        const cameraDistance = 3.0;
+        const cameraOffset = new THREE.Vector3(0.2, 0.2, 0.4).multiplyScalar(cameraDistance);
+        
+        const newTargetPosition = new THREE.Vector3(
+          currentPos.x + cameraOffset.x,
+          currentPos.y + cameraOffset.y,
+          currentPos.z + cameraOffset.z
+        );
+        
+        // Very gradual target updates
+        targetPositionRef.current.lerp(newTargetPosition, 0.05);
+        targetLookAtRef.current.lerp(currentPos, 0.05);
+      }
+      
+      // Ultra-smooth camera movement
+      currentPositionRef.current.lerp(targetPositionRef.current, transitionSpeedRef.current);
+      currentLookAtRef.current.lerp(targetLookAtRef.current, transitionSpeedRef.current);
+      
+      camera.position.copy(currentPositionRef.current);
+      camera.lookAt(currentLookAtRef.current);
+      
+      // Update controls target very smoothly
+      controlsRef.current.target.lerp(currentLookAtRef.current, transitionSpeedRef.current * 1.5);
+    }
+  });
+  
+  return <OrbitControls ref={controlsRef} enableZoom={true} enablePan={true} enableRotate={true} />;
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [cities, setCities] = useState<City[]>([
+    {
+      name: 'San Francisco',
+      lat: 37.7749,
+      lng: -122.4194,
+      country: 'United States',
+      distance: 0 // San Francisco is the reference point
+    }
+  ]);
+  
+  const [bridgeCounts, setBridgeCounts] = useState<{ [key: string]: number }>({});
+  const [maxBridges, setMaxBridges] = useState<{ [key: string]: number }>({});
+  const [scrollAccumulator, setScrollAccumulator] = useState(0);
+  const [isCameraLocked, setIsCameraLocked] = useState(true);
+  
+  
+  // San Francisco coordinates for bridge paths
+  const sanFrancisco = {
+    lat: 37.7749,
+    lng: -122.4194
+  };
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const handleCityAdd = (city: City) => {
+    setCities(prev => [...prev, city]);
+  };
+
+  const handleCityRemove = (cityName: string) => {
+    setCities(prev => prev.filter(city => city.name !== cityName));
+    // Clean up bridge counts when city is removed
+    setBridgeCounts(prev => {
+      const newCounts = { ...prev };
+      delete newCounts[cityName];
+      return newCounts;
+    });
+    setMaxBridges(prev => {
+      const newMax = { ...prev };
+      delete newMax[cityName];
+      return newMax;
+    });
+  };
+
+  const handleBridgeCountChange = (cityName: string, count: number) => {
+    setBridgeCounts(prev => ({
+      ...prev,
+      [cityName]: count
+    }));
+  };
+
+  const handleMaxBridgesCalculated = (cityName: string, maxBridges: number) => {
+    setMaxBridges(prev => ({
+      ...prev,
+      [cityName]: maxBridges
+    }));
+    // Initialize bridge count to 0 when max is calculated
+    if (!(cityName in bridgeCounts)) {
+      setBridgeCounts(prev => ({
+        ...prev,
+        [cityName]: 0
+      }));
+    }
+  };
+
+
+
+
+  // Handle scroll events for bridge count control
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    
+    // Find the first city that's not San Francisco to control
+    const targetCity = cities.find(city => city.name !== 'San Francisco');
+    if (!targetCity) return;
+    
+    const currentCount = bridgeCounts[targetCity.name] || 0;
+    const maxCount = maxBridges[targetCity.name] || 1;
+    
+    // Scroll threshold - require 3 scroll events to trigger a change
+    const SCROLL_THRESHOLD = 3;
+    
+    if (e.deltaY > 0) {
+      // Scroll down - increase bridge count
+      setScrollAccumulator(prev => {
+        const newAccumulator = prev + 1;
+        if (newAccumulator >= SCROLL_THRESHOLD) {
+          const newCount = Math.min(currentCount + 1, maxCount);
+          handleBridgeCountChange(targetCity.name, newCount);
+          return 0; // Reset accumulator
+        }
+        return newAccumulator;
+      });
+    } else {
+      // Scroll up - decrease bridge count
+      setScrollAccumulator(prev => {
+        const newAccumulator = prev - 1;
+        if (newAccumulator <= -SCROLL_THRESHOLD) {
+          const newCount = Math.max(currentCount - 1, 0);
+          handleBridgeCountChange(targetCity.name, newCount);
+          return 0; // Reset accumulator
+        }
+        return newAccumulator;
+      });
+    }
+  };
+
+  return (
+    <div className="h-screen w-full overflow-hidden relative">
+      <h1 className="text-4xl font-bold text-center p-8 absolute top-0 left-0 right-0 z-10">My journey to Puentes</h1>
+      
+      {/* Left side distance display - only show when last bridge is placed */}
+      {cities.length > 1 && (() => {
+        const targetCity = cities.find(city => city.name !== 'San Francisco');
+        if (!targetCity) return null;
+        
+        const currentBridgeCount = bridgeCounts[targetCity.name] || 0;
+        const maxBridgeCount = maxBridges[targetCity.name] || 1;
+        const isLastBridge = currentBridgeCount === maxBridgeCount;
+        
+        return isLastBridge ? (
+          <div className="absolute top-1/2 left-1/5 transform -translate-y-1/2 z-20">
+            <div className="bg-black/20 backdrop-blur-sm rounded-xl p-6 shadow-2xl border border-white/20 text-center">
+              {/* <div className="text-white text-2xl font-bold mb-2">Distance to SF</div> */}
+              <div className="text-white-300 text-4xl font-bold">
+                <ScrambleText 
+                  text={`${Math.floor(targetCity.distance).toString().padStart(4, '0')} km`}
+                  duration={1000}
+                  scrambleChars="0123456789"
+                  className="text-white-300 text-4xl font-bold"
+                />
+              </div>
+            </div>
+          </div>
+        ) : null;
+      })()}
+      <div className="h-full w-full relative">
+        {/* Full screen Globe */}
+        <div className="w-full h-full">
+          <Canvas 
+            camera={{ position: [0, 0, 5], near: 0.1, far: 1000 }}
+            shadows
+            gl={{ antialias: true, alpha: false }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <BridgeModelProvider>
+              <ambientLight intensity={0.3} />
+              <directionalLight 
+                position={[5, 10, 5]} 
+                intensity={1.2}
+                castShadow
+                shadow-mapSize-width={2048}
+                shadow-mapSize-height={2048}
+                shadow-camera-far={50}
+                shadow-camera-left={-10}
+                shadow-camera-right={10}
+                shadow-camera-top={10}
+                shadow-camera-bottom={-10}
+              />
+              <AnimatedStars count={2000} radius={15} speed={0.3} />
+              <EarthGlobe />
+              {cities.map((city, index) => (
+                <CityLabel 
+                  key={`${city.name}-${index}`} 
+                  city={city} 
+                  onRemove={handleCityRemove} 
+                />
+              ))}
+              
+              {/* Render bridge paths from each city to San Francisco */}
+              {cities
+                .filter(city => city.name !== 'San Francisco')
+                .map((city, index) => (
+                  <BridgePath
+                    key={`bridge-path-${city.name}-${index}`}
+                    startLat={city.lat}
+                    startLng={city.lng}
+                    endLat={sanFrancisco.lat}
+                    endLng={sanFrancisco.lng}
+                    bridgeCount={bridgeCounts[city.name] || 0}
+                    color="#c0362c"
+                    onMaxBridgesCalculated={(maxBridges) => handleMaxBridgesCalculated(city.name, maxBridges)}
+                  />
+                ))}
+              
+              {/* Camera controller for following bridge construction */}
+              <CameraController
+                targetCity={cities.find(city => city.name !== 'San Francisco') || null}
+                bridgeCount={bridgeCounts[cities.find(city => city.name !== 'San Francisco')?.name || ''] || 0}
+                maxBridges={maxBridges[cities.find(city => city.name !== 'San Francisco')?.name || ''] || 1}
+                sanFrancisco={sanFrancisco}
+                isLocked={isCameraLocked}
+              />
+            </BridgeModelProvider>
+          </Canvas>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        
+        {/* Right side overlay - City Search */}
+        <div className="absolute top-0 right-0 w-2/5 h-full bg-transparent" onWheel={handleWheel}>
+          <div className="h-full w-full flex items-center justify-center bg-transparent">
+            {cities.length <= 1 ? (
+              <CitySearch onCityAdd={handleCityAdd} />
+            ) : (
+              <div className="bg-black/20 backdrop-blur-sm rounded-xl p-8 shadow-2xl min-w-96 max-w-lg text-center border border-white/20">
+                {(() => {
+                  const targetCity = cities.find(city => city.name !== 'San Francisco');
+                  return (
+                    <>
+                      <h2 className="text-4xl font-bold text-gray-800 mb-2 text-white">{targetCity?.name?.toUpperCase()}</h2>
+                      <div className="space-y-4 text-left">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 text-white rounded-full flex items-center justify-center font-bold">↑</div>
+                          <span className="text-lg text-white">Scroll up 3 times to decrease bridge count</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 text-white rounded-full flex items-center justify-center font-bold">↓</div>
+                          <span className="text-lg text-white">Scroll down 3 times to increase bridge count</span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* Camera Lock Button */}
+      <div className="absolute bottom-4 left-1/5 transform -translate-x-1/2 z-20">
+        <button
+          onClick={() => setIsCameraLocked(!isCameraLocked)}
+          className="px-6 py-3 rounded-full font-semibold text-white transition-all duration-300 backdrop-blur-sm shadow-lg bg-black/20 hover:bg-black/40 border border-white/30 hover:border-white/50"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">
+              {isCameraLocked ? '🔒' : '🔓'}
+            </span>
+            <span>{isCameraLocked ? 'Camera Locked' : 'Camera Free'}</span>
+          </div>
+        </button>
+      </div>
     </div>
   );
 }

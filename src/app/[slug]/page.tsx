@@ -6,6 +6,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
+
 interface Engineer {
   id: string;
   cityOfBirth: string;
@@ -110,6 +111,23 @@ export default function EngineerPage() {
 
     fetchEngineer();
   }, [params.slug, router]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-red-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Rate Limit Exceeded</h1>
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !engineer) {
     return <LoadingSpinner message="Loading journey..." />;

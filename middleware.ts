@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+
 // Rate limiting storage (in production, use Redis or similar)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
@@ -50,7 +51,7 @@ const getClientIP = (request: NextRequest): string => {
     return realIP;
   }
   
-  return request.ip || 'unknown';
+  return (request as any).ip || 'unknown';
 };
 
 // Validate slug against database
@@ -94,9 +95,16 @@ export async function middleware(request: NextRequest) {
   // Extract slug from pathname
   const slug = pathname.slice(1); // Remove leading slash
   
-  // Skip if it's a known static route
+  // Skip if it's a known static route or static file
   const staticRoutes = ['adding-test', 'api', '_next', 'favicon.ico'];
+  const staticFileExtensions = ['.gltf', '.bin', '.jpg', '.jpeg', '.png', '.gif', '.svg', '.ico', '.css', '.js', '.woff', '.woff2'];
+  
   if (staticRoutes.some(route => pathname.startsWith(`/${route}`))) {
+    return NextResponse.next();
+  }
+  
+  // Skip if it's a static file
+  if (staticFileExtensions.some(ext => pathname.endsWith(ext))) {
     return NextResponse.next();
   }
   
@@ -105,7 +113,6 @@ export async function middleware(request: NextRequest) {
   
   // Check rate limiting
   if (isRateLimited(clientIP)) {
-    console.warn(`Rate limit exceeded for IP: ${clientIP}`);
     return new NextResponse(
       JSON.stringify({ 
         error: 'Too many requests', 
@@ -123,14 +130,12 @@ export async function middleware(request: NextRequest) {
   
   // Validate slug format
   if (!isValidSlugFormat(slug)) {
-    console.warn(`Invalid slug format: ${slug} from IP: ${clientIP}`);
     return NextResponse.redirect(new URL('/', request.url));
   }
   
   // Validate slug against database
   const isValidSlug = await validateSlug(slug);
   if (!isValidSlug) {
-    console.warn(`Invalid slug: ${slug} from IP: ${clientIP}`);
     return NextResponse.redirect(new URL('/', request.url));
   }
   
@@ -146,7 +151,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - adding-test (known static route)
+     * - golden_gate_bridge (3D model files)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|adding-test).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|adding-test|golden_gate_bridge).*)',
   ],
 };

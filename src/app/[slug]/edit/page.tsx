@@ -1,20 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { collection, query, where, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { JourneyData, JourneyDataInput, Milestone } from '../../../types/firestore';
 import ImageUploader from '../../../components/ImageUploader';
+import MilestoneImageUploader from '../../../components/MilestoneImageUploader';
 import LoadingSpinner from '../../../components/LoadingSpinner';
+import HomeCitySearch from '../../../components/HomeCitySearch';
+import HomeCitySelector from '../../../components/HomeCitySelector';
+import ProfilePictureUploader from '../../../components/ProfilePictureUploader';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import * as THREE from 'three';
+import { useBridgeModel, BridgeModelProvider } from '../../../components/BridgeModelLoader';
 
 interface Engineer {
   id: string;
-  cityOfBirth: string;
   company: string;
   coverImageUrl: string;
   fullName: string;
   home: {
+    city: string;
+    country: string;
     latitude: number;
     longitude: number;
   };
@@ -27,6 +36,67 @@ interface Engineer {
   createdAt: any;
 }
 
+const THEME_OPTIONS = [
+  { value: 'international-orange', label: 'International Orange (OG)', color: '#c0362c' },
+  { value: 'gold', label: 'Actual Gold lol', color: '#FFD700' },
+  { value: 'white', label: 'Boring White', color: '#ffffff' },
+  { value: 'random', label: 'Vibecode random color', color: '#ff6b6b' }
+];
+
+// Bridge preview component using the actual bridge model
+function BridgePreview({ color }: { color: string }) {
+  const { bridgeModel, isLoading } = useBridgeModel();
+  
+  // Don't render anything if the model isn't loaded yet
+  if (isLoading || !bridgeModel) {
+    return (
+      <group>
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[2, 0.1, 0.5]} />
+          <meshStandardMaterial color="#666666" />
+        </mesh>
+      </group>
+    );
+  }
+
+  // Create a colored version of the bridge model (same logic as BridgePath)
+  const coloredBridgeModel = useMemo(() => {
+    const clonedModel = bridgeModel.clone();
+    clonedModel.traverse((child: THREE.Object3D) => {
+      if (child instanceof THREE.Mesh && child.material) {
+        // Check if this is the gold theme for special metallic treatment
+        const isGold = color === '#FFD700';
+        
+        // Create a new material with the specified color
+        const newMaterial = new THREE.MeshStandardMaterial({
+          color: color,
+          metalness: isGold ? 0.9 : ((child.material as THREE.MeshStandardMaterial).metalness || 0.1),
+          roughness: isGold ? 0.1 : ((child.material as THREE.MeshStandardMaterial).roughness || 0.3),
+        });
+        child.material = newMaterial;
+        
+        // Enable shadow casting and receiving
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    return clonedModel;
+  }, [bridgeModel, color]);
+
+  return (
+    <group>
+      <primitive
+        object={coloredBridgeModel}
+        position={[0, -0.2, 0]}
+        rotation={[0, Math.PI/30, 0]} // 90 degrees on X-axis and Y-axis
+        scale={[0.5, 0.5, 0.5]} // Scale down for preview
+        castShadow
+        receiveShadow
+      />
+    </group>
+  );
+}
+
 export default function EditEngineerPage() {
   const params = useParams();
   const router = useRouter();
@@ -36,6 +106,8 @@ export default function EditEngineerPage() {
   const [error, setError] = useState<string | null>(null);
   const [codeVerified, setCodeVerified] = useState(false);
   const [isEditing, setIsEditing] = useState(true);
+  const [isGeneratingColor, setIsGeneratingColor] = useState(false);
+  const [colorGenerationStep, setColorGenerationStep] = useState(0);
 
   console.log('EditEngineerPage render - codeVerified:', codeVerified, 'loading:', loading, 'EDIT_CODE:', process.env.NEXT_PUBLIC_EDIT_CODE);
   console.log('Render conditions - loading:', loading, '!codeVerified:', !codeVerified);
@@ -44,12 +116,23 @@ export default function EditEngineerPage() {
   const [formData, setFormData] = useState<JourneyDataInput>({
     fullName: '',
     company: '',
-    cityOfBirth: '',
-    theme: '',
+    theme: 'international-orange', // Default to first theme option
     coverImageUrl: '',
-    home: [0, 0],
+    home: {
+      city: '',
+      country: '',
+      latitude: 0,
+      longitude: 0
+    },
     slug: '',
-    milestones: []
+    milestones: [
+      { description: '', imageUrl: '' },
+      { description: '', imageUrl: '' },
+      { description: '', imageUrl: '' },
+      { description: '', imageUrl: '' },
+      { description: '', imageUrl: '' },
+      { description: '', imageUrl: '' }
+    ]
   });
 
   useEffect(() => {
@@ -84,15 +167,25 @@ export default function EditEngineerPage() {
         setEngineer(engineerData);
         
         // Populate form with existing data
+        const existingMilestones = engineerData.milestones || [];
+        // Ensure exactly 6 milestones
+        const milestones = Array.from({ length: 6 }, (_, index) => 
+          existingMilestones[index] || { description: '', imageUrl: '' }
+        );
+        
         setFormData({
           fullName: engineerData.fullName || '',
           company: engineerData.company || '',
-          cityOfBirth: engineerData.cityOfBirth || '',
           theme: engineerData.theme || '',
           coverImageUrl: engineerData.coverImageUrl || '',
-          home: [engineerData.home?.latitude || 0, engineerData.home?.longitude || 0],
+          home: {
+            city: engineerData.home?.city || '',
+            country: engineerData.home?.country || '',
+            latitude: engineerData.home?.latitude || 0,
+            longitude: engineerData.home?.longitude || 0
+          },
           slug: engineerData.slug || '',
-          milestones: engineerData.milestones || []
+          milestones: milestones
         });
       } catch (err) {
         console.error('Error fetching engineer:', err);
@@ -111,10 +204,79 @@ export default function EditEngineerPage() {
   };
 
   const handleInputChange = (field: keyof JourneyDataInput, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    if (field === 'theme' && value === 'random') {
+      // Start the silly loading sequence
+      setIsGeneratingColor(true);
+      setColorGenerationStep(0);
+      
+      // Step 1: "Asking ChatGPT to generate random color..."
+      setTimeout(() => {
+        setColorGenerationStep(1);
+        
+        // Step 2: "Thinking..."
+        setTimeout(() => {
+          setColorGenerationStep(2);
+          
+          // Step 3: Generate and apply the color
+          setTimeout(() => {
+            const randomColor = generateRandomColor();
+            setFormData(prev => ({
+              ...prev,
+              [field]: randomColor
+            }));
+            setIsGeneratingColor(false);
+            setColorGenerationStep(0);
+          }, 1000);
+        }, 1500);
+      }, 1000);
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+  };
+
+  const generateRandomColor = () => {
+    const colors = [
+      '#4ecdc4', // Teal
+      '#45b7d1', // Sky blue
+      '#96ceb4', // Mint green
+      '#ff9ff3', // Pink
+      '#54a0ff', // Blue
+      '#5f27cd', // Purple
+      '#00d2d3', // Cyan
+      '#ff6348', // Coral
+      '#2ed573', // Green
+      '#ffa502', // Orange
+      '#a55eea', // Lavender
+      '#26de81', // Emerald
+      '#fd79a8', // Rose
+      '#6c5ce7', // Violet
+      '#00b894', // Turquoise
+      '#e17055', // Peach
+      '#74b9ff', // Light blue
+      '#fdcb6e', // Amber
+      '#e84393', // Magenta
+      '#00cec9'  // Aqua
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+
+  const getCurrentThemeColor = () => {
+    // If theme is a hex color (starts with #), use it directly
+    if (formData.theme.startsWith('#')) {
+      return formData.theme;
+    }
+    
+    // If theme is 'random', generate a new random color
+    if (formData.theme === 'random') {
+      return generateRandomColor();
+    }
+    
+    // Otherwise, find the theme option and return its color
+    const theme = THEME_OPTIONS.find(option => option.value === formData.theme);
+    return theme?.color || '#c0362c';
   };
 
   const handleMilestoneChange = (index: number, field: keyof Milestone, value: string) => {
@@ -126,19 +288,6 @@ export default function EditEngineerPage() {
     }));
   };
 
-  const addMilestone = () => {
-    setFormData(prev => ({
-      ...prev,
-      milestones: [...prev.milestones, { description: '', imageUrl: '' }]
-    }));
-  };
-
-  const removeMilestone = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      milestones: prev.milestones.filter((_, i) => i !== index)
-    }));
-  };
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,12 +303,13 @@ export default function EditEngineerPage() {
       const engineerData: JourneyData = {
         fullName: formData.fullName,
         company: formData.company,
-        cityOfBirth: formData.cityOfBirth,
         theme: formData.theme,
         coverImageUrl: formData.coverImageUrl,
         home: {
-          latitude: formData.home[0],
-          longitude: formData.home[1]
+          city: formData.home.city,
+          country: formData.home.country,
+          latitude: formData.home.latitude,
+          longitude: formData.home.longitude
         },
         slug: formData.slug,
         milestones: formData.milestones,
@@ -243,10 +393,21 @@ export default function EditEngineerPage() {
     <div className="min-h-screen bg-black">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-start justify-between mb-8">
             <h1 className="text-3xl font-bold text-gray-900">
-              Edit Engineer Profile
+              Edit Journey Data
             </h1>
+            
+            {/* Profile Picture - Top Right */}
+            <div className="flex flex-col items-end space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Photo 
+              </label>
+              <ProfilePictureUploader
+                value={formData.coverImageUrl}
+                onChange={(url) => handleInputChange('coverImageUrl', url)}
+              />
+            </div>
           </div>
 
           {error && (
@@ -258,7 +419,7 @@ export default function EditEngineerPage() {
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Basic Information */}
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900">Basic Information</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Personal Information</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -286,129 +447,104 @@ export default function EditEngineerPage() {
                     required
                   />
                 </div>
+                
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Home City *
+                </label>
+                <HomeCitySelector
+                  value={formData.home}
+                  onChange={(cityData) => handleInputChange('home', cityData)}
+                />
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City of Birth *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.cityOfBirth}
-                    onChange={(e) => handleInputChange('cityOfBirth', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                    required
-                  />
-                </div>
-
+              {/* Theme */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Theme *
                   </label>
-                  <input
-                    type="text"
-                    value={formData.theme}
-                    onChange={(e) => handleInputChange('theme', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                    required
-                  />
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={formData.theme.startsWith('#') ? 'random' : (formData.theme || 'international-orange')}
+                      onChange={(e) => handleInputChange('theme', e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                      required
+                    >
+                      {THEME_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div 
+                      className="w-8 h-8 rounded border border-gray-300"
+                      style={{ backgroundColor: getCurrentThemeColor() }}
+                    ></div>
+                  </div>
+                  {isGeneratingColor && (
+                    <div className="mt-2 text-center">
+                      <div className="text-sm text-gray-600 animate-pulse">
+                        {colorGenerationStep === 0 && "✨ Asking ChatGPT to generate random color..."}
+                        {colorGenerationStep === 1 && "Thinking..."}
+                        {colorGenerationStep === 2 && "Retrieving color from ChatGPT..."}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              {/* Location */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Home Latitude *
+                    Bridge Preview
                   </label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.home[0]}
-                    onChange={(e) => handleInputChange('home', [parseFloat(e.target.value) || 0, formData.home[1]])}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Home Longitude *
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.home[1]}
-                    onChange={(e) => handleInputChange('home', [formData.home[0], parseFloat(e.target.value) || 0])}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                    required
-                  />
+                  <div className="w-full h-32 bg-gray-600 rounded-md border border-gray-300">
+                    <Canvas camera={{ position: [0, 0, 0.75] }}>
+                      <BridgeModelProvider>
+                        <ambientLight intensity={0.4} />
+                        <directionalLight position={[2, 2, 2]} intensity={1.5} castShadow />
+                        <directionalLight position={[-2, 1, 1]} intensity={0.8} />
+                        <pointLight position={[0, 1, 0]} intensity={1.2} color="#ffffff" />
+                        <pointLight position={[1, 0.5, 1]} intensity={0.6} color="#FFD700" />
+                        <BridgePreview color={getCurrentThemeColor()} />
+                        <OrbitControls enableZoom={false} enablePan={false} />
+                      </BridgeModelProvider>
+                    </Canvas>
+                  </div>
                 </div>
               </div>
 
-              {/* Cover Image */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cover Image
-                </label>
-                <ImageUploader
-                  value={formData.coverImageUrl}
-                  onChange={(url) => handleInputChange('coverImageUrl', url)}
-                  placeholder="Upload cover image"
-                  className="w-full h-48"
-                />
-              </div>
             </div>
 
             {/* Milestones */}
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-900">Career Milestones</h2>
-                <button
-                  type="button"
-                  onClick={addMilestone}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                >
-                  Add Milestone
-                </button>
+                <span className="text-sm text-gray-500">6 milestones required</span>
               </div>
 
               {formData.milestones.map((milestone, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">Milestone {index + 1}</h3>
-                    <button
-                      type="button"
-                      onClick={() => removeMilestone(index)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      Remove
-                    </button>
+                <div key={index} className="flex gap-6 items-start">
+                  {/* Square Photo */}
+                  <div className="flex-shrink-0">
+                    <MilestoneImageUploader
+                      value={milestone.imageUrl}
+                      onChange={(url) => handleMilestoneChange(index, 'imageUrl', url)}
+                    />
                   </div>
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Description
-                      </label>
-                      <textarea
-                        value={milestone.description}
-                        onChange={(e) => handleMilestoneChange(index, 'description', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                        rows={3}
-                      />
+                  {/* Text Input */}
+                  <div className="flex-1">
+                    <div className="mb-2">
+                      <h3 className="text-lg font-medium text-gray-900">Milestone {index + 1}</h3>
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Image
-                      </label>
-                      <ImageUploader
-                        value={milestone.imageUrl}
-                        onChange={(url) => handleMilestoneChange(index, 'imageUrl', url)}
-                        placeholder="Upload milestone image"
-                        className="w-full h-32"
-                      />
-                    </div>
+                    <textarea
+                      value={milestone.description}
+                      onChange={(e) => handleMilestoneChange(index, 'description', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black resize-none"
+                      rows={4}
+                      placeholder={`Describe milestone ${index + 1}...`}
+                    />
                   </div>
                 </div>
               ))}

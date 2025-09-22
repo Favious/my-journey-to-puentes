@@ -5,8 +5,6 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useRouter } from 'next/navigation';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import EarthGlobe from '../components/EarthGlobe';
 import CitySearch from '../components/CitySearch';
 import CityLabel from '../components/CityLabel';
@@ -24,14 +22,6 @@ interface City {
   distance: number; // Distance to San Francisco in kilometers
 }
 
-interface Engineer {
-  id: string;
-  fullName: string;
-  slug: string;
-  company: string;
-  cityOfBirth: string;
-  coverImageUrl?: string;
-}
 
 // Camera controller component for smooth transitions
 function CameraController({ 
@@ -147,44 +137,7 @@ export default function Home() {
   const [isCameraLocked, setIsCameraLocked] = useState(true);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastScrollTimeRef = useRef(0);
-  const [engineers, setEngineers] = useState<Engineer[]>([]);
-  const [showEngineers, setShowEngineers] = useState(false);
   
-  // Fetch engineers from Firestore
-  const fetchEngineers = async () => {
-    try {
-      const engineersRef = collection(db, 'engineers');
-      const querySnapshot = await getDocs(engineersRef);
-      const engineersData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Engineer[];
-      setEngineers(engineersData);
-    } catch (error) {
-      console.error('Error fetching engineers:', error);
-    }
-  };
-
-  // Load engineers on component mount
-  useEffect(() => {
-    fetchEngineers();
-  }, []);
-  
-  // Prevent body scroll to avoid conflicts with custom scroll handling
-  useEffect(() => {
-    const preventScroll = (e: Event) => {
-      e.preventDefault();
-    };
-    
-    // Add event listeners to prevent scrolling
-    document.addEventListener('wheel', preventScroll, { passive: false });
-    document.addEventListener('touchmove', preventScroll, { passive: false });
-    
-    return () => {
-      document.removeEventListener('wheel', preventScroll);
-      document.removeEventListener('touchmove', preventScroll);
-    };
-  }, []);
   
   // San Francisco coordinates for bridge paths
   const sanFrancisco = {
@@ -315,51 +268,9 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen w-full overflow-hidden relative">
+    <div className="h-screen w-full overflow-hidden relative" style={{ height: '100vh', overflow: 'hidden' }}>
       <h1 className="text-4xl font-bold text-center p-8 absolute top-0 left-0 right-0 z-10">My journey to Puentes</h1>
       
-      {/* Engineers Section */}
-      <div className="absolute top-20 right-4 z-20">
-        <button
-          onClick={() => setShowEngineers(!showEngineers)}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-        >
-          {showEngineers ? 'Hide Engineers' : `View Engineers (${engineers.length})`}
-        </button>
-        
-          {showEngineers && (
-            <div className="absolute top-12 right-0 bg-white rounded-lg shadow-lg border p-4 w-80 max-h-96 overflow-y-auto">
-              <h3 className="font-semibold text-gray-900 mb-3">Engineer Profiles</h3>
-              {(engineers?.length || 0) === 0 ? (
-                <p className="text-gray-500 text-sm">No engineers found. Add some using the form!</p>
-              ) : (
-                <div className="space-y-2">
-                  {engineers?.map((engineer) => (
-                  <div key={engineer.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
-                    {engineer?.coverImageUrl && (
-                      <img
-                        src={engineer.coverImageUrl}
-                        alt={engineer?.fullName}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{engineer?.fullName}</p>
-                      <p className="text-xs text-gray-500 truncate">{engineer?.company}</p>
-                    </div>
-                    <button
-                      onClick={() => router.push(`/${engineer?.slug}`)}
-                      className="text-blue-500 hover:text-blue-700 text-xs font-medium"
-                    >
-                      View →
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
       
       {/* Left side distance display - only show when last bridge is placed */}
       {cities.length > 1 && (() => {

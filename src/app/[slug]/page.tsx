@@ -9,11 +9,12 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 
 interface Engineer {
   id: string;
-  cityOfBirth: string;
   company: string;
   coverImageUrl: string;
   fullName: string;
   home: {
+    city: string;
+    country: string;
     latitude: number;
     longitude: number;
   };
@@ -160,13 +161,12 @@ export default function EngineerPage() {
                   <span className="font-semibold">Company:</span> {engineer?.company}
                 </div>
                 <div>
-                  <span className="font-semibold">Born in:</span> {engineer?.cityOfBirth}
-                </div>
-                <div>
                   <span className="font-semibold">Theme:</span> {engineer?.theme}
                 </div>
                 <div>
-                  <span className="font-semibold">Location:</span> {engineer?.home?.latitude}°N, {engineer?.home?.longitude}°E
+                  <span className="font-semibold">Home:</span> {engineer?.home?.city && engineer?.home?.country 
+                    ? `${engineer.home.city}, ${engineer.home.country}` 
+                    : `${engineer?.home?.latitude}°N, ${engineer?.home?.longitude}°E`}
                 </div>
               </div>
             </div>

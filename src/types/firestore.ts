@@ -4,12 +4,13 @@ export interface Milestone {
 }
 
 export interface JourneyData {
-  cityOfBirth: string;
   company: string;
   coverImageUrl: string;
   createdAt: any; // Firestore Timestamp
   fullName: string;
   home: {
+    city: string;
+    country: string;
     latitude: number;
     longitude: number;
   };
@@ -19,11 +20,15 @@ export interface JourneyData {
 }
 
 export interface JourneyDataInput {
-  cityOfBirth: string;
   company: string;
   coverImageUrl: string;
   fullName: string;
-  home: [number, number]; // [lat, lng] for form input
+  home: {
+    city: string;
+    country: string;
+    latitude: number;
+    longitude: number;
+  };
   slug: string;
   theme: string;
   milestones: Milestone[];

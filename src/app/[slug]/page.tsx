@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -128,7 +128,12 @@ function CameraController({
     }
   });
   
-  return <OrbitControls ref={controlsRef} enableZoom={true} enablePan={true} enableRotate={true} />;
+  return <OrbitControls 
+    ref={controlsRef} 
+    enableZoom={!isLocked} 
+    enablePan={!isLocked} 
+    enableRotate={!isLocked} 
+  />;
 }
 
 export default function Home() {
@@ -162,6 +167,7 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [prevMilestoneIndex, setPrevMilestoneIndex] = useState(0);
   const [transitionDirection, setTransitionDirection] = useState<1 | -1>(1);
+  const milestonesContainerRef = useRef<HTMLDivElement>(null);
   
   // Simple sound helper for bridge add click
   const playBridgeClick = (times: number = 1) => {
@@ -409,38 +415,8 @@ export default function Home() {
     }
   };
 
-
-
-  // Handle scroll events for milestone and bridge sync (one milestone per scroll)
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const targetCity = cities.find(city => city.name !== 'San Francisco');
-    if (!targetCity) return;
-
-    const maxCount = Math.max(0, maxBridges?.[targetCity?.name] || 0);
-    const totalMilestones = Math.max(1, milestones.length || 6);
-
-    const now = Date.now();
-    const cooldownMs = 1000; // 1s lock between scroll movements
-    if (now - wheelCooldownRef.current < cooldownMs) return;
-    wheelCooldownRef.current = now;
-
-    const direction = e.deltaY > 0 ? 1 : -1;
-    const newMilestoneIndex = Math.min(
-      Math.max(milestoneIndex + direction, 0),
-      totalMilestones - 1
-    );
-
-    if (newMilestoneIndex === milestoneIndex) return;
-
-    // Use shared sync logic
-    syncBridgesWithMilestone(newMilestoneIndex);
-  };
-
   // Keep bridges in sync with the given milestone index
-  const syncBridgesWithMilestone = (newIndex: number) => {
+  const syncBridgesWithMilestone = useCallback((newIndex: number) => {
     const targetCity = cities.find(city => city.name !== 'San Francisco');
     if (!targetCity) {
       setMilestoneIndex(newIndex);
@@ -456,7 +432,57 @@ export default function Home() {
     const plannedCount = Math.min(maxCount, initialChunk + incrementsApplied);
     setMilestoneIndex(newIndex);
     handleBridgeCountChange(targetCity.name, plannedCount);
-  };
+  }, [cities, maxBridges, milestones.length, handleBridgeCountChange]);
+
+  // Handle scroll events for milestone and bridge sync (one milestone per scroll)
+  const handleWheel = useCallback((e: WheelEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const targetCity = cities.find(city => city.name !== 'San Francisco');
+    if (!targetCity) return;
+
+    const maxCount = Math.max(0, maxBridges?.[targetCity?.name] || 0);
+    const totalMilestones = Math.max(1, milestones.length || 6);
+
+    // Require a minimum deltaY threshold for scroll sensitivity
+    const minDeltaY = 2; // Adjust this value to make scrolling more or less sensitive
+    const absDeltaY = Math.abs(e.deltaY);
+    
+    // Debug: log scroll values to understand the difference
+    console.log('Scroll deltaY:', e.deltaY, 'absDeltaY:', absDeltaY, 'minDeltaY:', minDeltaY);
+    
+    if (absDeltaY < minDeltaY) return;
+    
+    const direction = e.deltaY > 0 ? 1 : -1;
+    const newMilestoneIndex = Math.min(
+      Math.max(milestoneIndex + direction, 0),
+      totalMilestones - 1
+    );
+
+    if (newMilestoneIndex === milestoneIndex) return;
+
+    // Check cooldown only after we know we want to change milestones
+    const now = Date.now();
+    const cooldownMs = 1000; // 0.5s lock between scroll movements
+    if (now - wheelCooldownRef.current < cooldownMs) return;
+    wheelCooldownRef.current = now;
+
+    // Use shared sync logic
+    syncBridgesWithMilestone(newMilestoneIndex);
+  }, [cities, maxBridges, milestones.length, milestoneIndex, syncBridgesWithMilestone]);
+
+  // Attach wheel event listener to milestones container
+  useEffect(() => {
+    const container = milestonesContainerRef.current;
+    if (!container || !hasStarted) return;
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [handleWheel, hasStarted]);
 
   // Show a full-screen loader while fetching data with stars background
   if (loading) {
@@ -569,41 +595,40 @@ export default function Home() {
         </div>
         
         {/* Right side overlay - Milestones only */}
-        <div className="absolute top-0 right-0 w-2/5 h-full bg-transparent overflow-visible z-50" onWheel={hasStarted ? handleWheel : undefined}>
-          <div className="h-full w-full flex items-center justify-center bg-transparent">
+        <div ref={milestonesContainerRef} className="absolute top-0 right-10 w-[600px] h-full overflow-visible z-50">
+          <div className="h-full w-full flex items-center justify-center bg-transparent relative">
             
-            {/* Vertical Step Indicator */}
-            {hasStarted && milestones.length > 1 && (
-              <div className="absolute right-25 top-1/2 transform -translate-y-1/2 z-60">
-                <div className="flex flex-col items-center space-y-2">
-                  {milestones.map((_, index) => (
-                    <div
-                      key={index}
-                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                        index === displayedMilestoneIndex
-                          ? 'bg-white scale-125 shadow-lg'
-                          : index < displayedMilestoneIndex
-                          ? 'bg-white/60 scale-100'
-                          : 'bg-white/20 scale-75'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
             {!hasStarted ? (
               <div className="flex items-center justify-center">
                 <button
                   onClick={() => setHasStarted(true)}
-                  className="px-8 py-4 rounded-full font-semibold text-black text-xl transition-all duration-300 shadow-2xl bg-white"
+                  className="px-8 py-4 rounded-full font-semibold text-black text-xl shadow-2xl bg-white"
                 >
                   Start
                 </button>
               </div>
             ) : (
-              <div className={`relative z-50 bg-white/5 rounded-xl p-8 shadow-2xl min-w-96 max-w-lg text-left border border-white/20 overflow-visible transition-all duration-500 ease-out ${
-                isTransitioning ? 'backdrop-blur-xl scale-[1.02] ring-1 ring-white/20' : 'backdrop-blur-sm scale-100'
-              }`}>
+              <div className="relative z-50 bg-white/5 rounded-xl p-8 min-w-lg max-w-lg text-left border border-white/20 overflow-visible backdrop-blur-sm">
+                
+                {/* Vertical Step Indicator - positioned relative to milestones content */}
+                {milestones.length > 1 && (
+                  <div className="absolute -right-8 top-1/2 transform -translate-y-1/2 z-60">
+                    <div className="flex flex-col items-center space-y-2">
+                      {milestones.map((_, index) => (
+                        <div
+                          key={index}
+                          className={`w-3 h-3 rounded-full ${
+                            index === displayedMilestoneIndex
+                              ? 'bg-white shadow-lg'
+                              : index < displayedMilestoneIndex
+                              ? 'bg-white/60'
+                              : 'bg-white/20'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {error ? (
                   <div className="text-red-400">{error}</div>
                 ) : milestones.length === 0 ? (
@@ -616,7 +641,7 @@ export default function Home() {
                         <button
                           onClick={goToPrevMilestone}
                           aria-label="Previous milestone"
-                          className="h-10 w-10 rounded-full text-white shadow-md transition active:scale-95 flex items-center justify-center"
+                          className="h-10 w-10 rounded-full text-white shadow-md flex items-center justify-center"
                         >
                           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                             <path d="M6 14l6-6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -629,7 +654,7 @@ export default function Home() {
                         <button
                           onClick={goToNextMilestone}
                           aria-label="Next milestone"
-                          className="h-10 w-10 rounded-full text-white shadow-md transition active:scale-95 flex items-center justify-center"
+                          className="h-10 w-10 rounded-full text-white shadow-md flex items-center justify-center"
                         >
                           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                             <path d="M6 10l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -644,14 +669,10 @@ export default function Home() {
                       const current = milestones[targetIndex];
                       return (
                         <>
-                          {/* Previous milestone layer for out animation */}
+                          {/* Previous milestone layer */}
                           <div
-                            className={`absolute inset-0 transition-all duration-500 ease-out pointer-events-none ${
-                              isTransitioning
-                                ? (transitionDirection === 1
-                                    ? 'translate-y-12 -rotate-1 scale-95 blur-[2px] opacity-0'
-                                    : '-translate-y-12 rotate-1 scale-95 blur-[2px] opacity-0')
-                                : 'opacity-0'
+                            className={`absolute inset-0 pointer-events-none ${
+                              isTransitioning ? 'opacity-0' : 'opacity-0'
                             }`}
                           >
                             {prev ? (
@@ -673,16 +694,8 @@ export default function Home() {
                             ) : null}
                           </div>
 
-                          {/* Current milestone layer for in animation */}
-                          <div
-                            className={`relative transition-all duration-500 ease-out ${
-                              isTransitioning
-                                ? (transitionDirection === 1
-                                    ? '-translate-y-6 opacity-0 scale-105'
-                                    : 'translate-y-6 opacity-0 scale-105')
-                                : 'translate-y-0 opacity-100 scale-100'
-                            }`}
-                          >
+                          {/* Current milestone layer */}
+                          <div className="relative opacity-100">
                             {current ? (
                               <>
                                 {current?.imageUrl && (
@@ -716,16 +729,28 @@ export default function Home() {
       </div>
 
       {/* Camera Lock Button */}
-      <div className="absolute bottom-4 left-1/5 transform -translate-x-1/2 z-20">
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
         <button
           onClick={() => setIsCameraLocked(!isCameraLocked)}
-          className="px-6 py-3 rounded-full font-semibold text-white transition-all duration-300 backdrop-blur-sm shadow-lg bg-black/20 hover:bg-black/40 border border-white/30 hover:border-white/50"
+          className={`px-3 py-3 rounded-full font-semibold transition-all duration-300 backdrop-blur-sm shadow-lg border ${
+            !isCameraLocked 
+              ? 'bg-white text-black border-white hover:bg-gray-100' 
+              : 'bg-white/5 text-white border-white/30 hover:bg-black/40 hover:border-white/50'
+          }`}
         >
-          <div className="flex items-center space-x-2">
-            <span className="text-lg">
-              {isCameraLocked ? '🔒' : '🔓'}
-            </span>
-            <span>{isCameraLocked ? 'Camera Locked' : 'Camera Free'}</span>
+          <div className="flex items-center space-x-1">
+            <div className={`w-5 h-5 ${isCameraLocked ? 'text-black' : 'text-white'}`}>
+              {!isCameraLocked ? (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="black" className="w-full h-full">
+                  <path d="M256 160L256 224L384 224L384 160C384 124.7 355.3 96 320 96C284.7 96 256 124.7 256 160zM192 224L192 160C192 89.3 249.3 32 320 32C390.7 32 448 89.3 448 160L448 224C483.3 224 512 252.7 512 288L512 512C512 547.3 483.3 576 448 576L192 576C156.7 576 128 547.3 128 512L128 288C128 252.7 156.7 224 192 224z"/>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="white" className="w-full h-full">
+                  <path d="M256 160C256 124.7 284.7 96 320 96C351.7 96 378 119 383.1 149.3C386 166.7 402.5 178.5 420 175.6C437.5 172.7 449.2 156.2 446.3 138.7C436.1 78.1 383.5 32 320 32C249.3 32 192 89.3 192 160L192 224C156.7 224 128 252.7 128 288L128 512C128 547.3 156.7 576 192 576L448 576C483.3 576 512 547.3 512 512L512 288C512 252.7 483.3 224 448 224L256 224L256 160z"/>
+                </svg>
+              )}
+            </div>
+            <span>{isCameraLocked ? 'Unlock Camera' : 'Lock Camera'}</span>
           </div>
         </button>
       </div>

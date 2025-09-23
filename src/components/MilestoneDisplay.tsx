@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useRef } from 'react';
+import TypingText from './TypingText';
+import AutoHeight from './AutoHeight';
 
 interface Milestone {
   description: string;
@@ -8,123 +10,109 @@ interface Milestone {
 }
 
 interface MilestoneDisplayProps {
-  currentMilestone: number;
-  totalMilestones: number;
-  onMilestoneChange?: (milestone: number) => void;
-  bridgeCount: number;
-  maxBridges: number;
-  homeCity: string;
-  country: string;
+  hasStarted: boolean;
   milestones: Milestone[];
+  displayedMilestoneIndex: number;
+  isTransitioning: boolean;
+  milestoneIndex: number;
+  onStart: () => void;
+  onWheel: (e: WheelEvent) => void;
 }
 
-export default function MilestoneDisplay({ 
-  currentMilestone, 
-  totalMilestones, 
-  onMilestoneChange,
-  bridgeCount,
-  maxBridges,
-  homeCity,
-  country,
-  milestones
+export default function MilestoneDisplay({
+  hasStarted,
+  milestones,
+  displayedMilestoneIndex,
+  isTransitioning,
+  milestoneIndex,
+  onStart,
+  onWheel
 }: MilestoneDisplayProps) {
-  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
-  const [imageLoading, setImageLoading] = useState<boolean>(false);
-  
-  const currentMilestoneData = milestones[currentMilestone - 1];
-  const isCompleted = currentMilestone > 1;
-
-  // Preload all milestone images
-  useEffect(() => {
-    const preloadImages = async () => {
-      const imagePromises = milestones.map((milestone) => {
-        if (milestone.imageUrl && !loadedImages.has(milestone.imageUrl)) {
-          return new Promise<string>((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => {
-              setLoadedImages(prev => new Set([...prev, milestone.imageUrl]));
-              resolve(milestone.imageUrl);
-            };
-            img.onerror = reject;
-            img.src = milestone.imageUrl;
-          });
-        }
-        return Promise.resolve(milestone.imageUrl);
-      });
-      
-      try {
-        await Promise.all(imagePromises);
-      } catch (error) {
-        console.warn('Some images failed to preload:', error);
-      }
-    };
-
-    preloadImages();
-  }, [milestones, loadedImages]);
-
-  // Handle image loading state for current milestone
-  useEffect(() => {
-    if (currentMilestoneData?.imageUrl) {
-      if (loadedImages.has(currentMilestoneData.imageUrl)) {
-        setImageLoading(false);
-      } else {
-        setImageLoading(true);
-      }
-    }
-  }, [currentMilestoneData?.imageUrl, loadedImages]);
-
-  const handleMilestoneClick = (milestoneId: number) => {
-    // Allow clicking on any milestone
-    if (onMilestoneChange && milestoneId >= 1 && milestoneId <= totalMilestones) {
-      onMilestoneChange(milestoneId);
-    }
-  };
+  const milestonesContainerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="h-full w-full flex items-center justify-center">
-      <div className="flex items-center gap-8 max-w-4xl">
-        {/* Image on the left */}
-        <div className="flex-shrink-0">
-          {currentMilestoneData?.imageUrl ? (
-            <div className="relative w-40 h-40">
-              {imageLoading ? (
-                <div className="w-64 h-64 bg-gray-300 flex items-center justify-center">
-                  <span className="text-gray-500">Loading...</span>
-                </div>
-              ) : (
-                <img
-                  src={currentMilestoneData.imageUrl}
-                  alt={`Milestone ${currentMilestone}`}
-                  className="w-40 h-40 object-cover"
-                  loading="eager"
-                  style={{ 
-                    transition: 'opacity 0.2s ease-in-out',
-                    opacity: loadedImages.has(currentMilestoneData.imageUrl) ? 1 : 0.5
-                  }}
-                />
-              )}
-            </div>
-          ) : (
-            <div className="w-64 h-64 bg-gray-300 flex items-center justify-center">
-              <span className="text-gray-500">No image</span>
-            </div>
-          )}
-        </div>
-
-        {/* Milestone text on the right */}
-        <div className="flex-1">
-          <div className="text-white">
-            {currentMilestoneData?.description ? (
-              <p className="text-lg leading-relaxed">
-                {currentMilestoneData.description}
-              </p>
-            ) : (
-              <p className="text-lg leading-relaxed text-gray-400">
-                No description available
-              </p>
-            )}
+    <div ref={milestonesContainerRef} data-milestones-container className="absolute top-0 right-2 w-[600px] h-full overflow-visible z-50">
+      <div className="h-full w-full flex items-center justify-center bg-transparent relative">
+        
+        {!hasStarted ? (
+          <div className="flex items-center justify-center">
+            <button
+              onClick={onStart}
+              className="px-6 py-3 rounded-full font-semibold text-black text-xl shadow-2xl bg-white"
+            >
+              START 
+            </button>
           </div>
-        </div>
+        ) : (
+          <div className="relative">
+            {/* Vertical Step Indicator - positioned outside the glass container */}
+            {milestones.length > 1 && (
+              <div className="absolute -right-8 top-1/2 transform -translate-y-1/2 z-60">
+                <div className="flex flex-col items-center space-y-2">
+                  {milestones.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`w-3 h-3 rounded-full ${
+                        index === displayedMilestoneIndex
+                          ? 'bg-white shadow-lg'
+                          : index < displayedMilestoneIndex
+                          ? 'bg-white/60'
+                          : 'bg-white/20'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="glass-container glass-container--large relative z-50 rounded-xl p-8 min-w-lg max-w-lg text-left overflow-visible">
+              <div className="glass-filter"></div>
+              <div className="glass-overlay"></div>
+              <div className="glass-specular"></div>
+              <div className="glass-content">
+                {milestones.length === 0 ? (
+                  <div className="text-gray-300">No milestones yet</div>
+                ) : (
+                  <div className="relative h-full w-full will-change-transform">
+                    {(() => {
+                      const targetIndex = isTransitioning ? milestoneIndex : displayedMilestoneIndex;
+                      const prevIndex = displayedMilestoneIndex;
+                      const prev = milestones[prevIndex];
+                      const current = milestones[targetIndex];
+                      return (
+                        <>
+                          {/* Current milestone layer */}
+                          <div className="relative opacity-100">
+                            {current ? (
+                              <>
+                                {current?.imageUrl && (
+                                  <div className="w-112 mb-4">
+                                    <img
+                                      key={current.imageUrl}
+                                      src={current.imageUrl}
+                                      alt="Milestone"
+                                      className="w-full h-64 object-cover rounded-lg"
+                                      loading="eager"
+                                      decoding="async"
+                                      fetchPriority="high"
+                                    />
+                                  </div>
+                                )}
+                                <AutoHeight transitionMs={400}>
+                                  <TypingText text={current?.description || ''} className="text-white text-left whitespace-pre-line text-lg md:text-xl" speedMs={14} />
+                                </AutoHeight>
+                              </>
+                            ) : null}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

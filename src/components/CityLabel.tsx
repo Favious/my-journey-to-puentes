@@ -82,7 +82,7 @@ export default function CityLabel({ city, onRemove }: CityLabelProps) {
             {city.name}
           </div>
           <div className="text-gray-300 text-xs">
-            {flag && <span className="mr-1">{flag}</span>}
+            {flag && <span className="mr-0.5">{flag}</span>}
             {city.country}
           </div>
         </div>

@@ -68,12 +68,14 @@ export default function CityLabel({ city, onRemove }: CityLabelProps) {
         occlude={false}
         sprite={false}
         transform={false}
+        zIndexRange={[0, 0]}
       >
         <div 
           className="text-center pointer-events-none select-none"
           style={{ 
             transform: `scale(${textScale})`,
-            transformOrigin: 'center'
+            transformOrigin: 'center',
+            zIndex: 0
           }}
         >
           <div className="text-white text-sm font-semibold whitespace-nowrap">

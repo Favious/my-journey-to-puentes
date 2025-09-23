@@ -99,7 +99,7 @@ export default function MilestoneDisplay({
                                   </div>
                                 )}
                                 <AutoHeight transitionMs={400}>
-                                  <TypingText text={current?.description || ''} className="text-white text-left whitespace-pre-line text-lg md:text-xl" speedMs={14} />
+                                  <TypingText text={current?.description || ''} className="text-white text-left whitespace-pre-line text-lg md:text-xl" speedMs={13} />
                                 </AutoHeight>
                               </>
                             ) : null}

@@ -114,6 +114,7 @@ export default function Home() {
           if (themeValue === 'gold') return '#FFD700';
           if (themeValue === 'white') return '#ffffff';
           if (themeValue === 'international-orange') return '#c0362c';
+          if (themeValue === 'antigravity-orange') return '#f25a26';
           return '#c0362c';
         })();
         setBridgeColor(resolvedColor);
@@ -213,7 +214,9 @@ export default function Home() {
           <feDisplacementMap in="SourceGraphic" in2="blurred" scale="70" xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </svg>
-      <h1 className="text-5xl font-bold text-center p-8 absolute top-0 left-0 right-0 z-10">{name}'s journey to Puentes</h1>
+      <h1 className="font-bold text-center p-8 absolute top-0 left-0 right-0 z-10 tracking-wider" style={{ fontFamily: 'var(--font-bridge)', fontSize: '4rem' }}>
+        {name}'s journey to <span style={{ color: bridgeColor }}>Puentes</span>
+      </h1>
       
       <DistanceDisplay 
         hasStarted={hasStarted}
@@ -228,7 +231,7 @@ export default function Home() {
           <Canvas 
             camera={{ position: [1, 1, 5.7], near: 0.1, far: 1000 }}
             shadows
-            gl={{ antialias: true, alpha: false }}
+            gl={{ antialias: true, alpha: false}}
           >
             <BridgeModelProvider>
               <ambientLight intensity={0.3} />

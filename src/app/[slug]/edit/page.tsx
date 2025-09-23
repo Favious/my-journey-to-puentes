@@ -40,7 +40,8 @@ const THEME_OPTIONS = [
   { value: 'international-orange', label: 'International Orange (OG)', color: '#c0362c' },
   { value: 'gold', label: 'Actual Gold lol', color: '#FFD700' },
   { value: 'white', label: 'Boring White', color: '#ffffff' },
-  { value: 'random', label: 'Vibecode random color', color: '#ff6b6b' }
+  { value: 'antigravity-orange', label: 'Antigravity Orange', color: '#f25a26' },
+  { value: 'random', label: 'Vibecode Random Color', color: '#ff6b6b' }
 ];
 
 // Bridge preview component using the actual bridge model
@@ -66,12 +67,13 @@ function BridgePreview({ color }: { color: string }) {
       if (child instanceof THREE.Mesh && child.material) {
         // Check if this is the gold theme for special metallic treatment
         const isGold = color === '#FFD700';
+        const isAntigravityOrange = color === '#f25a26';
         
         // Create a new material with the specified color
         const newMaterial = new THREE.MeshStandardMaterial({
           color: color,
-          metalness: isGold ? 0.9 : ((child.material as THREE.MeshStandardMaterial).metalness || 0.1),
-          roughness: isGold ? 0.1 : ((child.material as THREE.MeshStandardMaterial).roughness || 0.3),
+          metalness: isGold ? 0.9 : (isAntigravityOrange ? 0.0 : ((child.material as THREE.MeshStandardMaterial).metalness || 0.1)),
+          roughness: isGold ? 0.1 : (isAntigravityOrange ? 1.0 : ((child.material as THREE.MeshStandardMaterial).roughness || 0.3)),
         });
         child.material = newMaterial;
         

@@ -100,12 +100,13 @@ function BridgePath({
       if (child instanceof THREE.Mesh && child.material) {
         // Check if this is the gold theme for special metallic treatment
         const isGold = color === '#FFD700';
+        const isAntigravityOrange = color === '#f25a26';
         
         // Create a new material with the specified color
         const newMaterial = new THREE.MeshStandardMaterial({
           color: color,
-          metalness: isGold ? 0.75 : 0.2,
-          roughness: isGold ? 0.1 : 0.4,
+          metalness: isGold ? 0.75 : (isAntigravityOrange ? 0.0 : 0.2),
+          roughness: isGold ? 0.1 : (isAntigravityOrange ? 1.0 : 0.4),
           emissive: isGold ? new THREE.Color(0x222200) : new THREE.Color(0x000000), // Slight glow for gold
           emissiveIntensity: isGold ? 0.1 : 0,
         });

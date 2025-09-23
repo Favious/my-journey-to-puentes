@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Mesh, Vector3 } from 'three';
 import { Html } from '@react-three/drei';
+import { getFlagForCountry } from '@/utils/countryFlags';
 
 interface City {
   name: string;
@@ -22,6 +23,7 @@ export default function CityLabel({ city, onRemove }: CityLabelProps) {
   const labelRef = useRef<HTMLDivElement>(null);
   const { camera } = useThree();
   const [textScale, setTextScale] = useState(1);
+  const flag = getFlagForCountry(city.country);
 
   // Convert lat/lng to 3D position on sphere
   // Account for the rotated earth image (left to right rotation)
@@ -53,7 +55,7 @@ export default function CityLabel({ city, onRemove }: CityLabelProps) {
     <group position={[x, y, z]}>
       {/* Pin/Sphere marker */}
       <mesh>
-        <sphereGeometry args={[0.05, 8, 8]} />
+        <sphereGeometry args={[0.02, 8, 8]} />
         <meshStandardMaterial color="red" />
       </mesh>
       
@@ -78,6 +80,7 @@ export default function CityLabel({ city, onRemove }: CityLabelProps) {
             {city.name}
           </div>
           <div className="text-gray-300 text-xs">
+            {flag && <span className="mr-1">{flag}</span>}
             {city.country}
           </div>
         </div>

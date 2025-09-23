@@ -300,7 +300,8 @@ export default function EditEngineerPage() {
       setError(null);
 
       // Convert form data to the format expected by Firestore
-      const engineerData: JourneyData = {
+      // Don't include createdAt when updating - Firebase handles this automatically
+      const engineerData = {
         fullName: formData.fullName,
         company: formData.company,
         theme: formData.theme,
@@ -312,8 +313,7 @@ export default function EditEngineerPage() {
           longitude: formData.home.longitude
         },
         slug: formData.slug,
-        milestones: formData.milestones,
-        createdAt: engineer.createdAt
+        milestones: formData.milestones
       };
 
       // Update the document in Firestore

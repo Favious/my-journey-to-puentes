@@ -104,7 +104,7 @@ function BridgePath({
         // Create a new material with the specified color
         const newMaterial = new THREE.MeshStandardMaterial({
           color: color,
-          metalness: isGold ? 0.9 : 0.2,
+          metalness: isGold ? 0.75 : 0.2,
           roughness: isGold ? 0.1 : 0.4,
           emissive: isGold ? new THREE.Color(0x222200) : new THREE.Color(0x000000), // Slight glow for gold
           emissiveIntensity: isGold ? 0.1 : 0,

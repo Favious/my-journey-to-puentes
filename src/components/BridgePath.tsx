@@ -80,9 +80,9 @@ function BridgePath({
         <primitive
           object={coloredBridgeModel.clone()}
           position={[
-            segment.position[0] + segment.normal[0] * 0.01,
-            segment.position[1] + segment.normal[1] * 0.01,
-            segment.position[2] + segment.normal[2] * 0.01
+            segment.position[0] + segment.normal[0] * 0.002,
+            segment.position[1] + segment.normal[1] * 0.002,
+            segment.position[2] + segment.normal[2] * 0.002
           ]}
           quaternion={segment.rotation}
           scale={[0.515 * segment.scale, 1 * segment.scale, 1.4 * segment.scale]}
@@ -98,11 +98,16 @@ function BridgePath({
     const clonedModel = bridgeModel.clone();
     clonedModel.traverse((child: THREE.Object3D) => {
       if (child instanceof THREE.Mesh && child.material) {
+        // Check if this is the gold theme for special metallic treatment
+        const isGold = color === '#FFD700';
+        
         // Create a new material with the specified color
         const newMaterial = new THREE.MeshStandardMaterial({
           color: color,
-          metalness: (child.material as THREE.MeshStandardMaterial).metalness || 0.1,
-          roughness: (child.material as THREE.MeshStandardMaterial).roughness || 0.3,
+          metalness: isGold ? 0.9 : 0.2,
+          roughness: isGold ? 0.1 : 0.4,
+          emissive: isGold ? new THREE.Color(0x222200) : new THREE.Color(0x000000), // Slight glow for gold
+          emissiveIntensity: isGold ? 0.1 : 0,
         });
         child.material = newMaterial;
         
@@ -130,7 +135,7 @@ function BridgePath({
   
   // Convert lat/lng points to 3D coordinates on the sphere
   const linePoints = pathPoints.map(point => {
-    const pos = latLngToVector3(point.lat, point.lng, 3.01); // Very close to sphere surface
+    const pos = latLngToVector3(point.lat, point.lng, 3.005); // Very close to sphere surface
     return [pos.x, pos.y, pos.z] as [number, number, number];
   });
 
@@ -146,8 +151,8 @@ function BridgePath({
     // Calculate the total path length to determine how many bridges can fit
     let totalPathLength = 0;
     for (let i = 0; i < pathPoints.length - 1; i++) {
-      const currentPos = latLngToVector3(pathPoints[i].lat, pathPoints[i].lng, 3.01);
-      const nextPos = latLngToVector3(pathPoints[i + 1].lat, pathPoints[i + 1].lng, 3.01);
+      const currentPos = latLngToVector3(pathPoints[i].lat, pathPoints[i].lng, 3.005);
+      const nextPos = latLngToVector3(pathPoints[i + 1].lat, pathPoints[i + 1].lng, 3.005);
       // Calculate distance manually since latLngToVector3 returns a plain object
       const dx = nextPos.x - currentPos.x;
       const dy = nextPos.y - currentPos.y;
@@ -173,14 +178,14 @@ function BridgePath({
       
       // Find the position along the path at this distance
       let currentDistance = 0;
-      const initialPosData = latLngToVector3(pathPoints[0].lat, pathPoints[0].lng, 3.01);
+      const initialPosData = latLngToVector3(pathPoints[0].lat, pathPoints[0].lng, 3.005);
       let position = new THREE.Vector3(initialPosData.x, initialPosData.y, initialPosData.z);
       let normal = new THREE.Vector3(position.x, position.y, position.z).normalize();
       let tangentDirection = new THREE.Vector3();
       
       for (let j = 0; j < pathPoints.length - 1; j++) {
-        const currentPosData = latLngToVector3(pathPoints[j].lat, pathPoints[j].lng, 3.01);
-        const nextPosData = latLngToVector3(pathPoints[j + 1].lat, pathPoints[j + 1].lng, 3.01);
+        const currentPosData = latLngToVector3(pathPoints[j].lat, pathPoints[j].lng, 3.005);
+        const nextPosData = latLngToVector3(pathPoints[j + 1].lat, pathPoints[j + 1].lng, 3.005);
         
         // Convert to THREE.Vector3 objects
         const currentPos = new THREE.Vector3(currentPosData.x, currentPosData.y, currentPosData.z);
@@ -244,9 +249,9 @@ function BridgePath({
           <primitive
             object={coloredBridgeModel.clone()}
             position={[
-              segment.position[0] + segment.normal[0] * 0.01,
-              segment.position[1] + segment.normal[1] * 0.01,
-              segment.position[2] + segment.normal[2] * 0.01
+              segment.position[0] - segment.normal[0] * 0.01,
+              segment.position[1] - segment.normal[1] * 0.01,
+              segment.position[2] - segment.normal[2] * 0.01
             ]}
             quaternion={segment.rotation}
             scale={[0.515 * segment.scale, 1 * segment.scale, 1.4 * segment.scale]}

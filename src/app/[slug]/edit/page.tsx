@@ -111,9 +111,6 @@ export default function EditEngineerPage() {
   const [isGeneratingColor, setIsGeneratingColor] = useState(false);
   const [colorGenerationStep, setColorGenerationStep] = useState(0);
 
-  console.log('EditEngineerPage render - codeVerified:', codeVerified, 'loading:', loading, 'EDIT_CODE:', process.env.NEXT_PUBLIC_EDIT_CODE);
-  console.log('Render conditions - loading:', loading, '!codeVerified:', !codeVerified);
-  
   // Form state
   const [formData, setFormData] = useState<JourneyDataInput>({
     fullName: '',

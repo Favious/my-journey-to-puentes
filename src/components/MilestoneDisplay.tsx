@@ -17,6 +17,8 @@ interface MilestoneDisplayProps {
   milestoneIndex: number;
   onStart: () => void;
   onWheel: (e: WheelEvent) => void;
+  showCheck?: boolean;
+  onCheck?: () => void;
 }
 
 export default function MilestoneDisplay({
@@ -26,7 +28,9 @@ export default function MilestoneDisplay({
   isTransitioning,
   milestoneIndex,
   onStart,
-  onWheel
+  onWheel,
+  showCheck,
+  onCheck
 }: MilestoneDisplayProps) {
   const milestonesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -101,6 +105,16 @@ export default function MilestoneDisplay({
                                 <AutoHeight transitionMs={400}>
                                   <TypingText text={current?.description || ''} className="text-white text-left whitespace-pre-line text-lg md:text-xl" speedMs={5} />
                                 </AutoHeight>
+                                {showCheck ? (
+                                  <div className="mt-6 flex justify-center">
+                                    <button
+                                      onClick={onCheck}
+                                      className="px-6 py-3 rounded-full font-semibold text-black text-xl shadow-2xl bg-white"
+                                    >
+                                      CHECK
+                                    </button>
+                                  </div>
+                                ) : null}
                               </>
                             ) : null}
                           </div>

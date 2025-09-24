@@ -81,7 +81,7 @@ export default function CityLabel({ city, onRemove }: CityLabelProps) {
           <div className="text-white text-sm font-semibold whitespace-nowrap">
             {city.name}
           </div>
-          <div className="text-gray-300 text-xs">
+          <div className="text-gray-300 text-xs flex flex-row justify-center items-center">
             {flag && <span className="mr-0.5">{flag}</span>}
             {city.country}
           </div>

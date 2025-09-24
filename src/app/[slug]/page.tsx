@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useParams } from 'next/navigation';
@@ -14,6 +14,7 @@ import CameraController from '../../components/CameraController';
 import DistanceDisplay from '../../components/DistanceDisplay';
 import MilestoneDisplay from '../../components/MilestoneDisplay';
 import CameraControls from '../../components/CameraControls';
+import CheckSection from '../../components/CheckSection';
 import { BridgeModelProvider } from '../../components/BridgeModelLoader';
 import { calculateDistance, SAN_FRANCISCO_COORDS } from '../../utils/distanceCalculation';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -38,6 +39,7 @@ export default function Home() {
   const [milestones, setMilestones] = useState<{ description: string; imageUrl: string }[]>([]);
   const [bridgeColor, setBridgeColor] = useState<string>('#c0362c');
   const [name, setName] = useState<string>('');
+  const [coverImageUrl, setCoverImageUrl] = useState<string>('');
   const [hasStarted, setHasStarted] = useState<boolean>(false);
   const [cities, setCities] = useState<City[]>([
     {
@@ -121,6 +123,7 @@ export default function Home() {
         })();
         setBridgeColor(resolvedColor);
         setName((data?.fullName as string) || '');
+        setCoverImageUrl((data?.coverImageUrl as string) || '');
         const homeLat = data?.home?.latitude;
         const homeLng = data?.home?.longitude;
         const homeCity = data?.home?.city || 'Home';
@@ -196,6 +199,45 @@ export default function Home() {
     };
   }, [hasStarted, goToNextMilestone, goToPrevMilestone]);
 
+  // Determine if we're at the last milestone and bridges are complete
+  const { showCheck, handleCheck } = useMemo(() => {
+    const targetCity = cities.find(c => c.name !== 'San Francisco');
+    const isLastMilestone = hasStarted && milestones.length > 0 && displayedMilestoneIndex === Math.max(0, milestones.length - 1);
+    const isBridgesComplete = !!(targetCity && (bridgeCounts?.[targetCity.name] || 0) >= (maxBridges?.[targetCity.name] || 0) && (maxBridges?.[targetCity.name] || 0) > 0);
+    return {
+      showCheck: Boolean(isLastMilestone && isBridgesComplete),
+      handleCheck: () => {
+        const el = document.getElementById('check-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    };
+  }, [cities, hasStarted, milestones.length, displayedMilestoneIndex, bridgeCounts, maxBridges]);
+
+  // Lock page scroll until the last milestone is reached and bridges are complete
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    if (!showCheck) {
+      body.style.overflow = 'hidden';
+      body.style.height = '100vh';
+      root.style.overflow = 'hidden';
+      root.style.height = '100vh';
+    } else {
+      body.style.overflow = '';
+      body.style.height = '';
+      root.style.overflow = '';
+      root.style.height = '';
+    }
+    return () => {
+      body.style.overflow = '';
+      body.style.height = '';
+      root.style.overflow = '';
+      root.style.height = '';
+    };
+  }, [showCheck]);
+
   // Show a full-screen loader while fetching data
   if (loading) {
     return (
@@ -208,6 +250,7 @@ export default function Home() {
   }
 
   return (
+    <>
     <div className="h-screen w-full overflow-hidden relative" style={{ height: '100vh', overflow: 'hidden' }}>
       <svg style={{ display: 'none' }}>
         <filter id="lg-dist" x="0%" y="0%" width="100%" height="100%">
@@ -311,6 +354,8 @@ export default function Home() {
           milestoneIndex={milestoneIndex}
           onStart={() => setHasStarted(true)}
           onWheel={handleWheel}
+          showCheck={showCheck}
+          onCheck={handleCheck}
         />
       </div>
 
@@ -320,6 +365,13 @@ export default function Home() {
         onToggleLock={() => setIsCameraLocked(!isCameraLocked)}
       />
     </div>
+    <CheckSection 
+      id="check-section" 
+      homeCountry={cities.find(c => c.name !== 'San Francisco')?.country}
+      fullName={name}
+      coverImageUrl={coverImageUrl}
+    />
+    </>
   );
 }
 

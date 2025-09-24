@@ -46,6 +46,17 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Hide scrollbars across browsers while preserving scroll functionality */
+html, body {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 @keyframes blink {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0; }
@@ -132,4 +143,320 @@ body {
   padding: 0.25rem 2rem 0.25rem 0.75rem;
   flex: 1 1 auto;
   justify-content: space-between;
+}
+
+/* ========== HOLOGRAPHIC CARD STYLES ========== */
+/* Inspired by https://www.suhailrazzak.com/writing/holographic-cards */
+.holo-card {
+  --rx: 0deg;
+  --ry: 0deg;
+  --bgx: 50%;
+  --bgy: 50%;
+  --holo-color-1: #B22234; /* fallback - US flag red */
+  --holo-color-2: #3C3B6E; /* fallback - US flag blue */
+  --holo-color-3: #FFFFFF; /* fallback - US flag white */
+  --flag-color-1: #B22234; /* fallback for mesh - US flag red */
+  --flag-color-2: #3C3B6E; /* fallback for mesh - US flag blue */
+  --flag-color-3: #FFFFFF; /* fallback for mesh - US flag white */
+  width: 400px;
+  height: 560px;
+  perspective: 1000px;
+}
+
+.holo-card .holo-surface {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style: preserve-3d;
+  transition: transform 160ms ease;
+}
+
+/* Border holographic layer */
+.holo-card .holo-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  padding: 2px; /* border thickness */
+  background: linear-gradient(
+    115deg,
+    var(--holo-color-1) 20%,
+    var(--holo-color-2) 35%,
+    var(--holo-color-3) 50%,
+    var(--holo-color-1) 65%,
+    var(--holo-color-2) 80%,
+  );
+  background-size: 300% 300%;
+  background-position: var(--bgx) var(--bgy);
+  filter: brightness(0.9) contrast(1.35) saturate(1.15);
+  mix-blend-mode: screen;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Image-only holographic sheen layer (gradient + color-dodge) */
+.holo-card .holo-image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background-image: linear-gradient(
+      115deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.699) 35%,   
+      rgba(0, 0, 0, 0.386) 65%,
+      transparent 100%
+    );
+  background-size: 300% 300%;
+  background-position: var(--bgx) var(--bgy);
+  mix-blend-mode: color-dodge;
+  opacity: 0.22;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Intensify gradient band while active, similar to demo */
+.holo-card.active .holo-image::after {
+  opacity: 0.55;
+  background-image: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 25%,
+    rgba(255, 255, 255, 0.7) 35%,   
+    rgba(0, 0, 0, 0.386) 65%,
+    transparent 70%,
+    transparent 100%
+  );
+}
+
+/* Card body */
+.holo-card .holo-content {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+  border-radius: 16px;
+  background: #0f0f10;
+  color: #f5f5f5;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.holo-card .holo-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+  padding-top: 12px;
+  font-family: var(--font-bridge, ui-sans-serif);
+}
+
+.holo-card .holo-badge {
+  font-size: 12px;
+  letter-spacing: 1.6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.holo-card .holo-title {
+  font-weight: 700;
+  font-size: 16px;
+  opacity: 0.9;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.holo-card .holo-image {
+  position: relative;
+  margin: 6px 10px;
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 220px;
+}
+
+.holo-card .holo-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 1;
+}
+
+/* Image holographic overlay layer - SMOOTH BLENDED GRADIENT */
+.holo-card .holo-image-overlay {
+  position: absolute;
+  inset: 0;
+  /* Smooth blended gradient based on "Favio Pariente" - F=6, A=1, V=22, I=9, O=15, P=16, A=1, R=18, I=9, E=5, N=14, T=20, E=5 */
+  background-image:
+    /* Main smooth gradient - tighter stops for better blending */
+    linear-gradient(127deg,
+      color-mix(in oklab, var(--holo-color-1) 60%, transparent) 0%,
+      color-mix(in oklab, var(--holo-color-2) 55%, transparent) 15%,
+      color-mix(in oklab, var(--holo-color-3) 50%, transparent) 30%,
+      color-mix(in oklab, var(--holo-color-1) 45%, transparent) 45%,
+      color-mix(in oklab, var(--holo-color-2) 40%, transparent) 60%,
+      color-mix(in oklab, var(--holo-color-3) 35%, transparent) 75%,
+      color-mix(in oklab, var(--holo-color-1) 30%, transparent) 100%
+    ),
+    /* Secondary smooth blend - counter direction with closer stops */
+    linear-gradient(53deg,
+      color-mix(in oklab, var(--holo-color-3) 50%, transparent) 0%,
+      color-mix(in oklab, var(--holo-color-1) 45%, transparent) 20%,
+      color-mix(in oklab, var(--holo-color-2) 40%, transparent) 40%,
+      color-mix(in oklab, var(--holo-color-3) 35%, transparent) 60%,
+      color-mix(in oklab, var(--holo-color-1) 30%, transparent) 80%,
+      color-mix(in oklab, var(--holo-color-2) 25%, transparent) 100%
+    ),
+    /* Soft radial blend for depth - more color mixing */
+    radial-gradient(ellipse 90% 70% at 45% 55%,
+      color-mix(in oklab, var(--holo-color-2) 40%, transparent) 0%,
+      color-mix(in oklab, var(--holo-color-3) 35%, transparent) 25%,
+      color-mix(in oklab, var(--holo-color-1) 30%, transparent) 50%,
+      color-mix(in oklab, var(--holo-color-2) 25%, transparent) 75%,
+      transparent 100%
+    ),
+    /* Additional smooth layer for better blending - tighter stops */
+    linear-gradient(180deg,
+      color-mix(in oklab, var(--holo-color-1) 35%, transparent) 0%,
+      color-mix(in oklab, var(--holo-color-2) 30%, transparent) 25%,
+      color-mix(in oklab, var(--holo-color-3) 25%, transparent) 50%,
+      color-mix(in oklab, var(--holo-color-1) 20%, transparent) 75%,
+      color-mix(in oklab, var(--holo-color-2) 15%, transparent) 100%
+    );
+  background-size: 120% 120%, 110% 110%, 100% 100%, 100% 100%;
+  background-position: 20% 20%, 80% 80%, center, center;
+  background-blend-mode: screen, screen, screen, screen;
+  mix-blend-mode: color-dodge;
+  filter: contrast(1.6) brightness(1.3) saturate(1.5);
+  pointer-events: none;
+}
+
+
+
+/* Sparkles layer akin to the Pokemon card demo */
+
+/* Optional idle animations similar to reference */
+@keyframes holoSparkle {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  70% { opacity: 0.5; }
+  95% { opacity: 0.2; }
+}
+
+@keyframes holoGradient {
+  3% { opacity: 0; }
+  5% { background-position: 0% 0%; }
+  7% { opacity: 0.5; }
+  9% { background-position: 100% 100%; }
+  11% { opacity: 0; }
+  50% { opacity: 0; background-position: 100% 100%; }
+  55% { opacity: 0.3; }
+  70% { opacity: 0; background-position: 0% 0%; }
+}
+
+.holo-card .holo-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 16px 16px;
+  font-size: 12px;
+}
+
+.holo-card .holo-desc {
+  opacity: 0.8;
+}
+
+.holo-card .holo-num {
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+/* ========== MESH BACKGROUND PATTERN ========== */
+.mesh-background {
+  position: relative;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+
+.mesh-background::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    /* Primary mesh grid using flag colors */
+    linear-gradient(var(--flag-color-1) 1px, transparent 1px),
+    linear-gradient(90deg, var(--flag-color-2) 1px, transparent 1px),
+    /* Secondary diagonal mesh */
+    linear-gradient(45deg, var(--flag-color-3) 1px, transparent 1px),
+    linear-gradient(-45deg, var(--flag-color-1) 1px, transparent 1px),
+    /* Tertiary fine mesh for depth */
+    linear-gradient(30deg, var(--flag-color-2) 0.5px, transparent 0.5px),
+    linear-gradient(-30deg, var(--flag-color-3) 0.5px, transparent 0.5px);
+  
+  background-size: 
+    60px 60px,     /* Primary grid */
+    60px 60px,     /* Primary grid */
+    40px 40px,     /* Diagonal mesh */
+    40px 40px,     /* Diagonal mesh */
+    20px 20px,     /* Fine mesh */
+    20px 20px;     /* Fine mesh */
+  
+  background-position: 
+    0 0, 0 0,      /* Primary grid */
+    0 0, 0 0,      /* Diagonal mesh */
+    0 0, 0 0;      /* Fine mesh */
+  
+  opacity: 0.04;
+  mix-blend-mode: screen;
+  animation: meshShift 20s linear infinite;
+}
+
+.mesh-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 25% 25%, var(--flag-color-1) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, var(--flag-color-2) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, var(--flag-color-3) 0%, transparent 30%);
+  opacity: 0.04;
+  mix-blend-mode: screen;
+  animation: meshGlow 15s ease-in-out infinite alternate;
+}
+
+@keyframes meshShift {
+  0% {
+    background-position: 
+      0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+  }
+  100% {
+    background-position: 
+      60px 60px, 60px 60px, 40px 40px, 40px 40px, 20px 20px, 20px 20px;
+  }
+}
+
+@keyframes meshGlow {
+  0% {
+    opacity: 0.05;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.12;
+    transform: scale(1.1);
+  }
+}
+
+/* Responsive tweaks */
+@media (max-width: 420px) {
+  .holo-card {
+    width: 300px;
+    height: 430px;
+  }
 }

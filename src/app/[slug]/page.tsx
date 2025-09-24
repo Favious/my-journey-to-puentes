@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import { useParams } from 'next/navigation';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -26,6 +27,7 @@ interface City {
     country: string;
   distance: number; // Distance to San Francisco in kilometers
 }
+
 
 
 
@@ -215,7 +217,7 @@ export default function Home() {
         </filter>
       </svg>
       <h1 className="font-bold text-center p-8 absolute top-0 left-0 right-0 z-10 tracking-wider" style={{ fontFamily: 'var(--font-bridge)', fontSize: '4rem' }}>
-        {name}'s journey to <span style={{ color: bridgeColor }}>Puentes</span>
+        {name.split(' ')[0]}'s journey to <span style={{ color: bridgeColor, fontWeight: 'bold' }}>Puentes</span>
       </h1>
       
       <DistanceDisplay 
@@ -275,16 +277,27 @@ export default function Home() {
                   />
                 ))}
               
-              {/* Camera controller for following bridge construction */}
-              <CameraController
-                targetCity={cities?.find(city => city?.name !== 'San Francisco') || null}
-                bridgeCount={bridgeCounts?.[cities?.find(city => city?.name !== 'San Francisco')?.name || ''] || 0}
-                maxBridges={maxBridges?.[cities?.find(city => city?.name !== 'San Francisco')?.name || ''] || 1}
-                sanFrancisco={sanFrancisco}
-        isLocked={isCameraLocked && hasStarted}
-        milestoneIndex={milestoneIndex}
-        totalMilestones={Math.max(1, milestones.length || 6)}
-              />
+              {/* Camera controller for following bridge construction - only active when journey has started */}
+              {hasStarted ? (
+                <CameraController
+                  targetCity={cities?.find(city => city?.name !== 'San Francisco') || null}
+                  bridgeCount={bridgeCounts?.[cities?.find(city => city?.name !== 'San Francisco')?.name || ''] || 0}
+                  maxBridges={maxBridges?.[cities?.find(city => city?.name !== 'San Francisco')?.name || ''] || 1}
+                  sanFrancisco={sanFrancisco}
+                  isLocked={isCameraLocked && hasStarted}
+                  milestoneIndex={milestoneIndex}
+                  totalMilestones={Math.max(1, milestones.length || 6)}
+                />
+              ) : (
+                <OrbitControls 
+                  enableZoom={true} 
+                  enablePan={true} 
+                  enableRotate={true}
+                  autoRotate={false}
+                  enableDamping={false}
+                  dampingFactor={0}
+                />
+              )}
             </BridgeModelProvider>
           </Canvas>
         </div>

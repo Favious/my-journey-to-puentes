@@ -27,7 +27,7 @@ function EarthCamera() {
 
 export default function Home() {
   return (
-    <div className="h-screen w-full flex items-center justify-center flex-col gap-3 relative" style={{ backgroundColor: "#16234d"}}>
+    <div className="h-screen w-full flex items-center justify-center flex-col gap-3 relative" style={{ backgroundColor: "black"}}>
       <Canvas
         camera={{ position: [0, 0, 5], fov: 75 }}
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}
@@ -37,7 +37,7 @@ export default function Home() {
       </Canvas>
       <div className="relative z-10">
         <h1 className="text-8xl font-bold text-white text-center tracking-wider" style={{ fontFamily: 'var(--font-bridge)'}}>Journeys to Puentes</h1>
-        <h1 className="text-4xl text-white/50 text-center">Successful Stories</h1>
+        <h1 className="text-4xl text-white/50 text-center">Successful Stories 🚀</h1>
       </div>
     </div>
   );

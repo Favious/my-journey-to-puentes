@@ -1,67 +1,6 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: 'SF Pro Display';
-  src: url('https://font.download/font/sf-pro-display/SFProDisplay-Regular.woff2') format('woff2'),
-       url('https://font.download/font/sf-pro-display/SFProDisplay-Regular.woff') format('woff');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'SF Pro Display';
-  src: url('https://font.download/font/sf-pro-display/SFProDisplay-Medium.woff2') format('woff2'),
-       url('https://font.download/font/sf-pro-display/SFProDisplay-Medium.woff') format('woff');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'SF Pro Display';
-  src: url('https://font.download/font/sf-pro-display/SFProDisplay-Semibold.woff2') format('woff2'),
-       url('https://font.download/font/sf-pro-display/SFProDisplay-Semibold.woff') format('woff');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'SF Pro Display';
-  src: url('https://font.download/font/sf-pro-display/SFProDisplay-Bold.woff2') format('woff2'),
-       url('https://font.download/font/sf-pro-display/SFProDisplay-Bold.woff') format('woff');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'SF Pro Text';
-  src: url('https://font.download/font/sf-pro-text/SFProText-Regular.woff2') format('woff2'),
-       url('https://font.download/font/sf-pro-text/SFProText-Regular.woff') format('woff');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'SF Pro Text';
-  src: url('https://font.download/font/sf-pro-text/SFProText-Medium.woff2') format('woff2'),
-       url('https://font.download/font/sf-pro-text/SFProText-Medium.woff') format('woff');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'SF Pro Text';
-  src: url('https://font.download/font/sf-pro-text/SFProText-Semibold.woff2') format('woff2'),
-       url('https://font.download/font/sf-pro-text/SFProText-Semibold.woff') format('woff');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
+/* SF Pro fonts removed - using system fonts instead to avoid CORS issues */
 
 @font-face {
   font-family: 'SS Bridge';
@@ -89,9 +28,9 @@ html {
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
-  --font-bridge: "SS Bridge", "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+  --font-bridge: "SS Bridge", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {

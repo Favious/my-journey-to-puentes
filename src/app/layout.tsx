@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import "./globals.css";
+import Image from "next/image";
 
 export const metadata: Metadata = {
-  title: "My journey to Puentes",
-  description: "My journey to Puentes",
+  title: "Journeys to Puentes",
+  description: "A showcase of successful stories",
 };
 
 export default function RootLayout({
@@ -16,15 +16,15 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         {/* Logo in bottom left corner - clickable to redirect to Antigravity Capital */}
-        <div className="fixed bottom-5 left-5 z-50">
+        <div className="fixed bottom-5 left-5 z-50 mix-blend-difference">
           <a
             href="https://antigravity.capital/"
             target="_blank"
             rel="noopener noreferrer"
             className="block cursor-pointer hover:opacity-80 transition-opacity duration-200"
           >
-            <div className="text-center">
-              <p className="text-xs text-white-500 mb-1">Powered by</p>
+            <div className="text-center ">
+              <p className="text-xs text-white mb-1">Powered by</p>
               <Image
                 src="/antigravityLogo.avif"
                 alt="Antigravity Logo"

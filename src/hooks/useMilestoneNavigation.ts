@@ -99,9 +99,6 @@ export function useMilestoneNavigation(
     const minDeltaY = 2; // Adjust this value to make scrolling more or less sensitive
     const absDeltaY = Math.abs(e.deltaY);
     
-    // Debug: log scroll values to understand the difference
-    console.log('Scroll deltaY:', e.deltaY, 'absDeltaY:', absDeltaY, 'minDeltaY:', minDeltaY);
-    
     if (absDeltaY < minDeltaY) return;
     
     const direction = e.deltaY > 0 ? 1 : -1;

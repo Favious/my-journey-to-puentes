@@ -8,12 +8,14 @@ interface AnimatedStarsProps {
   count?: number;
   radius?: number;
   speed?: number;
+  color?: number | string;
 }
 
 export default function AnimatedStars({ 
   count = 1000, 
   radius = 10, 
-  speed = 0.5 
+  speed = 0.5,
+  color = 0xffffff
 }: AnimatedStarsProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const timeRef = useRef(0);
@@ -101,7 +103,7 @@ export default function AnimatedStars({
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
       <sphereGeometry args={[1, 4, 4]} />
       <meshBasicMaterial 
-        color={0xffffff}
+        color={color}
         transparent
         opacity={0.8}
         vertexColors={false}

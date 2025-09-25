@@ -1,5 +1,15 @@
+// Mobile detection utility
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+         window.innerWidth <= 768;
+};
+
 // Simple sound helper for bridge add click
 export const playBridgeClick = (times: number = 1) => {
+  // Skip sound on mobile devices
+  if (isMobileDevice()) return;
+  
   const count = Math.max(0, Math.floor(times));
   for (let i = 0; i < count; i++) {
     // Stagger slightly if multiple plays are needed
@@ -18,6 +28,9 @@ export const playBridgeClick = (times: number = 1) => {
 
 // Simple sound helper for bridge removal
 export const playBridgeDelete = (times: number = 1) => {
+  // Skip sound on mobile devices
+  if (isMobileDevice()) return;
+  
   const count = Math.max(0, Math.floor(times));
   for (let i = 0; i < count; i++) {
     // Stagger slightly if multiple plays are needed

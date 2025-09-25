@@ -419,7 +419,8 @@ export default function EditEngineerPage() {
                   name="code"
                   placeholder="¯\_(ツ)_/¯"
                   className="w-full px-4 py-3 border border-gray-300 text-lg font-mono focus:outline-none focus:ring-2 focus:border-transparent"
-                  autoComplete="new-password"
+                  autoComplete="off"
+                  data-form-type="other"
                   autoFocus
                 />
               </div>

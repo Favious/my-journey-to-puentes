@@ -60,7 +60,7 @@ export default function MilestoneImageUploader({ value, onChange, className = ""
     <div className={`relative w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-300 shadow-sm group ${className}`}>
       {isUploading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
-          <LoadingSpinner size="sm" />
+          <LoadingSpinner />
         </div>
       )}
 

@@ -5,7 +5,67 @@ import AnimatedStars from './AnimatedStars';
 import { useCallback, useMemo, useRef } from 'react';
 import { COUNTRY_FLAG_COLORS, getFlagForCountry } from '../utils/countryFlags';
 import { generateNameBasedColors } from '../utils/nameBasedColors';
+
+// Simple hash function to match the one in nameBasedColors.ts
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash);
+}
 import * as THREE from 'three';
+
+// Convert any CSS color (hex/rgb/rgba/hsl/hsla) to a valid color with alpha
+function colorWithAlpha(inputColor: string, alpha: number): string {
+  const color = (inputColor || '').trim();
+  // hex formats: #RGB or #RRGGBB
+  if (color.startsWith('#')) {
+    let r = 0, g = 0, b = 0;
+    if (color.length === 4) {
+      // #RGB
+      r = parseInt(color[1] + color[1], 16);
+      g = parseInt(color[2] + color[2], 16);
+      b = parseInt(color[3] + color[3], 16);
+    } else if (color.length >= 7) {
+      // #RRGGBB (ignore any trailing alpha if present)
+      r = parseInt(color.slice(1, 3), 16);
+      g = parseInt(color.slice(3, 5), 16);
+      b = parseInt(color.slice(5, 7), 16);
+    }
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  // rgb/rgba
+  if (color.startsWith('rgb')) {
+    try {
+      const nums = color
+        .replace(/rgba?\(/, '')
+        .replace(/\)/, '')
+        .split(',')
+        .map((v) => v.trim());
+      const r = parseFloat(nums[0]);
+      const g = parseFloat(nums[1]);
+      const b = parseFloat(nums[2]);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    } catch {
+      return color;
+    }
+  }
+  // hsl/hsla
+  if (color.startsWith('hsl')) {
+    const inside = color.slice(color.indexOf('(') + 1, color.lastIndexOf(')'));
+    const parts = inside.split(',').map((p) => p.trim());
+    // Expect h, s%, l%
+    const h = parts[0];
+    const s = parts[1];
+    const l = parts[2];
+    return `hsla(${h}, ${s}, ${l}, ${alpha})`;
+  }
+  // Fallback: return original (browser will decide)
+  return color;
+}
 
 function EarthCamera() {
   const { camera } = useThree();
@@ -42,13 +102,11 @@ export default function CheckSection({ id = 'check-section', homeCountry, fullNa
   const [flagC1, flagC2, flagC3] = useMemo(() => {
     if (homeCountry && COUNTRY_FLAG_COLORS[homeCountry]) {
       const flagColors = COUNTRY_FLAG_COLORS[homeCountry];
-      console.log(`Using flag colors from ${homeCountry}:`, flagColors);
       return flagColors;
     }
     
     // Fallback to United States flag colors if no country
     const defaultFlagColors = COUNTRY_FLAG_COLORS['United States'] || ['#B22234', '#3C3B6E', '#FFFFFF'];
-    console.log(`Using default flag colors (US):`, defaultFlagColors);
     return defaultFlagColors;
   }, [homeCountry]);
 
@@ -57,7 +115,7 @@ export default function CheckSection({ id = 'check-section', homeCountry, fullNa
     if (color.toUpperCase() === '#FFFFFF' || color.toUpperCase() === '#FFF') {
       // Replace white with a more suitable color based on the name and index
       if (fullName && fullName.trim().length > 0) {
-        const nameHash = fullName.split('').reduce((hash, char) => hash + char.charCodeAt(0), 0);
+        const nameHash = hashString(fullName);
         const seed = nameHash + index;
         
         // Generate a subtle color variation instead of white
@@ -79,7 +137,6 @@ export default function CheckSection({ id = 'check-section', homeCountry, fullNa
     if (fullName && fullName.trim().length > 0) {
       // Generate name-based pattern but apply country flag colors
       const namePattern = generateNameBasedColors(fullName);
-      console.log(`Using name-based pattern for ${fullName}:`, namePattern);
       
       // Apply the flag colors but keep the name-based pattern structure
       // We'll use the flag colors but in the order determined by the name
@@ -91,21 +148,33 @@ export default function CheckSection({ id = 'check-section', homeCountry, fullNa
       flag3 = handleWhiteColor(flag3, 3);
       
       // Use name pattern to determine which flag color goes where
-      const nameHash = fullName.split('').reduce((hash, char) => hash + char.charCodeAt(0), 0);
+      const nameHash = hashString(fullName);
       const colorOrder = nameHash % 6; // 6 possible arrangements
       
       let result;
       switch (colorOrder) {
-        case 0: result = [flag1, flag2, flag3];
-        case 1: result = [flag1, flag3, flag2];
-        case 2: result = [flag2, flag1, flag3];
-        case 3: result = [flag2, flag3, flag1];
-        case 4: result = [flag3, flag1, flag2];
-        case 5: result = [flag3, flag2, flag1];
-        default: result = [flag1, flag2, flag3];
+        case 0: 
+          result = [flag1, flag2, flag3];
+          break;
+        case 1: 
+          result = [flag1, flag3, flag2];
+          break;
+        case 2: 
+          result = [flag2, flag1, flag3];
+          break;
+        case 3: 
+          result = [flag2, flag3, flag1];
+          break;
+        case 4: 
+          result = [flag3, flag1, flag2];
+          break;
+        case 5: 
+          result = [flag3, flag2, flag1];
+          break;
+        default: 
+          result = [flag1, flag2, flag3];
       }
       
-      console.log(`Final colors after white handling:`, result);
       return result;
     }
     
@@ -114,7 +183,6 @@ export default function CheckSection({ id = 'check-section', homeCountry, fullNa
     const processedFlag2 = handleWhiteColor(flagC2, 2);
     const processedFlag3 = handleWhiteColor(flagC3, 3);
     
-    console.log(`Using flag colors in default order (processed):`, [processedFlag1, processedFlag2, processedFlag3]);
     return [processedFlag1, processedFlag2, processedFlag3];
   }, [fullName, flagC1, flagC2, flagC3]);
 
@@ -182,6 +250,16 @@ export default function CheckSection({ id = 'check-section', homeCountry, fullNa
                 ['--holo-color-1' as any]: c1,
                 ['--holo-color-2' as any]: c2,
                 ['--holo-color-3' as any]: c3,
+                // Inject opacity variants for the overlay gradients
+                ['--holo-color-1-40' as any]: colorWithAlpha(c1, 0.5),
+                ['--holo-color-1-25' as any]: colorWithAlpha(c1, 0.30),
+                ['--holo-color-1-15' as any]: colorWithAlpha(c1, 0.20),
+                ['--holo-color-2-35' as any]: colorWithAlpha(c2, 0.45),
+                ['--holo-color-2-20' as any]: colorWithAlpha(c2, 0.25),
+                ['--holo-color-2-25' as any]: colorWithAlpha(c2, 0.3),
+                ['--holo-color-3-30' as any]: colorWithAlpha(c3, 0.35),
+                ['--holo-color-3-15' as any]: colorWithAlpha(c3, 0.20),
+                ['--holo-color-3-20' as any]: colorWithAlpha(c3, 0.30),
                 // Inject same colors for mesh background
                 ['--flag-color-1' as any]: meshC1,
                 ['--flag-color-2' as any]: meshC2,

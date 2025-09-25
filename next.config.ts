@@ -2,15 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   devIndicators: false,
-  // Ensure static assets are properly served
-  assetPrefix: process.env.NODE_ENV === 'production' ? '' : '',
-  // Enable static file serving
-  trailingSlash: false,
-  // Ensure fonts are properly loaded
-  experimental: {
-    // optimizeCss: true, // Disabled due to critters dependency issue
-  },
-  // Headers for font loading
+  // Headers for font and asset loading
   async headers() {
     return [
       {
@@ -32,6 +24,10 @@ const nextConfig: NextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
           },
         ],
       },

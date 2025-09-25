@@ -96,15 +96,25 @@ export default function Home() {
   // Fetch journey by slug
   useEffect(() => {
     const load = async () => {
+      let slug = '';
       try {
-        if (!params?.slug) return;
+        if (!params?.slug) {
+          console.log('No slug provided');
+          return;
+        }
         setError(null);
         setLoading(true);
-        const slug = params.slug as string;
+        slug = params.slug as string;
+        console.log('Loading slug:', slug);
+        
         const engineersRef = collection(db, 'engineers');
         const q = query(engineersRef, where('slug', '==', slug));
         const snapshot = await getDocs(q);
+        
+        console.log('Query result:', { empty: snapshot.empty, size: snapshot.size });
+        
         if (snapshot.empty) {
+          console.log('No documents found for slug:', slug);
           setError('Not found');
           setMilestones([]);
           return;
@@ -149,7 +159,9 @@ export default function Home() {
           }
         ]);
         setMilestones(Array.isArray(data?.milestones) ? data.milestones : []);
+        console.log('Successfully loaded data for slug:', slug);
       } catch (e) {
+        console.error('Error loading slug:', slug, e);
         setError('Failed to load');
       } finally {
         setLoading(false);

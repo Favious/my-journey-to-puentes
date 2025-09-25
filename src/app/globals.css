@@ -1,7 +1,14 @@
 @import "tailwindcss";
 
 /* SF Pro fonts removed - using system fonts instead to avoid CORS issues */
-/* Custom font is now loaded via Next.js font optimization in layout.tsx */
+/* Custom font loading with proper fallback */
+@font-face {
+  font-family: 'SS Bridge';
+  src: url('/fonts/ss-bridge.regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
 html {
   scroll-behavior: smooth;
@@ -23,7 +30,7 @@ html {
   --color-foreground: var(--foreground);
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
-  --font-bridge: var(--font-ss-bridge), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-bridge: "SS Bridge", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {

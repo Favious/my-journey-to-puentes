@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error validating slug:', error);
     return NextResponse.json({ 
       error: 'Failed to validate slug' 
     }, { status: 500 });

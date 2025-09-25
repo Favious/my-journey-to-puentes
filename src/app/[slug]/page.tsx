@@ -259,7 +259,7 @@ export default function Home() {
           <feDisplacementMap in="SourceGraphic" in2="blurred" scale="70" xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </svg>
-      <h1 className="font-bold text-center p-8 absolute top-0 left-0 right-0 z-10 tracking-wider" style={{ fontFamily: 'var(--font-bridge)', fontSize: '4rem' }}>
+      <h1 className="font-bold text-center p-4 md:p-8 absolute top-0 left-0 right-0 z-10 tracking-wider text-4xl md:text-6xl lg:text-7xl" style={{ fontFamily: 'var(--font-bridge)' }}>
         {name.split(' ')[0]}'s journey to <span style={{ color: bridgeColor, fontWeight: 'bold' }}>Puentes</span>
       </h1>
       
@@ -356,6 +356,8 @@ export default function Home() {
           onWheel={handleWheel}
           showCheck={showCheck}
           onCheck={handleCheck}
+          goToNextMilestone={goToNextMilestone}
+          goToPrevMilestone={goToPrevMilestone}
         />
       </div>
 

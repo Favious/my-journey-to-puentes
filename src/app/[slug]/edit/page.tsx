@@ -188,7 +188,6 @@ export default function EditEngineerPage() {
           milestones: milestones
         });
       } catch (err) {
-        console.error('Error fetching engineer:', err);
         setError('Failed to load engineer data');
       } finally {
         setLoading(false);
@@ -382,7 +381,6 @@ export default function EditEngineerPage() {
       // Redirect to the view page
       router.push(`/${formData.slug}`);
     } catch (err) {
-      console.error('Error saving engineer:', err);
       setError('Failed to save engineer data');
     } finally {
       setSaving(false);
@@ -417,11 +415,11 @@ export default function EditEngineerPage() {
             }} className="space-y-4">
               <div>
                 <input
-                  type="text"
+                  type="password"
                   name="code"
                   placeholder="¯\_(ツ)_/¯"
                   className="w-full px-4 py-3 border border-gray-300 text-lg font-mono focus:outline-none focus:ring-2 focus:border-transparent"
-                  autoComplete="off"
+                  autoComplete="new-password"
                   autoFocus
                 />
               </div>

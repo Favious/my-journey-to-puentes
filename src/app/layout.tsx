@@ -16,12 +16,12 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         {/* Logo in bottom left corner - clickable to redirect to Antigravity Capital */}
-        <div className="fixed bottom-5 left-5 z-50 mix-blend-difference">
+        <div className="fixed -bottom-2 -left-5 md:bottom-5 md:left-5 z-50 mix-blend-difference">
           <a
             href="https://antigravity.capital/"
             target="_blank"
             rel="noopener noreferrer"
-            className="block cursor-pointer hover:opacity-80 transition-opacity duration-200"
+            className="block cursor-pointer hover:opacity-80 transition-opacity duration-200 scale-50 md:scale-100"
           >
             <div className="text-center ">
               <p className="text-xs text-white mb-1">Powered by</p>

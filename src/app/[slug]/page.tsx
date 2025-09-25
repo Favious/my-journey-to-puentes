@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import EarthGlobe from '../../components/EarthGlobe';
@@ -35,9 +35,12 @@ interface City {
 
 export default function Home() {
   const params = useParams();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(true);
-  const [assetLoading, setAssetLoading] = useState(true);
+  const [assetLoading, setAssetLoading] = useState(false);
+  const [profileComplete, setProfileComplete] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [currentAsset, setCurrentAsset] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +110,11 @@ export default function Home() {
   // Get dynamic loading message based on progress
   const getLoadingMessage = useCallback(() => {
     if (dataLoading) {
-      return "Loading your journey...";
+      return "Loading journey...";
+    }
+    
+    if (!profileComplete) {
+      return "Checking profile...";
     }
     
     if (loadingProgress < 30) {
@@ -119,7 +126,7 @@ export default function Home() {
     } else {
       return "Almost ready...";
     }
-  }, [dataLoading, loadingProgress]);
+  }, [dataLoading, profileComplete, loadingProgress]);
 
   const handleAssetComplete = useCallback(() => {
     setAssetLoading(false);
@@ -192,6 +199,19 @@ export default function Home() {
         ]);
         setMilestones(Array.isArray(data?.milestones) ? data.milestones : []);
         console.log('Successfully loaded data for slug:', slug);
+        
+        // Check if profile is complete - if not, redirect to edit page
+        const fullName = data?.fullName as string;
+        if (!fullName || fullName.trim() === '') {
+          console.log('Profile incomplete - redirecting to edit page');
+          setRedirecting(true);
+          router.push(`/${slug}/edit`);
+          return;
+        }
+        
+        // Profile is complete, mark it as such and start asset loading
+        setProfileComplete(true);
+        setAssetLoading(true);
       } catch (e) {
         console.error('Error loading slug:', slug, e);
         setError('Failed to load');
@@ -200,12 +220,12 @@ export default function Home() {
       }
     };
     load();
-  }, [params?.slug]);
+  }, [params?.slug, router]);
 
   // Update overall loading state
   useEffect(() => {
-    setLoading(dataLoading || assetLoading);
-  }, [dataLoading, assetLoading]);
+    setLoading(dataLoading || (profileComplete && assetLoading));
+  }, [dataLoading, profileComplete, assetLoading]);
 
   const handleCityRemove = (_cityName: string) => {};
 
@@ -287,6 +307,14 @@ export default function Home() {
     };
   }, [showCheck]);
 
+  // If redirecting, show a simple loading message
+  if (redirecting) {
+    return (
+      <div className="min-h-screen w-full bg-black relative overflow-hidden flex items-center justify-center">
+      </div>
+    );
+  }
+
   // Show a full-screen loader while fetching data and loading assets
   if (loading) {
     return (
@@ -295,15 +323,17 @@ export default function Home() {
           <LoadingSpinner 
             message={getLoadingMessage()} 
             className="bg-transparent min-h-0 h-auto"
-            progress={loadingProgress}
-            currentAsset={currentAsset}
-            showProgress={true}
+            progress={profileComplete ? loadingProgress : 0}
+            currentAsset={profileComplete ? currentAsset : ''}
+            showProgress={profileComplete}
           />
         </div>
-        <AssetPreloader 
-          onComplete={handleAssetComplete}
-          onProgress={handleAssetProgress}
-        />
+        {profileComplete && (
+          <AssetPreloader 
+            onComplete={handleAssetComplete}
+            onProgress={handleAssetProgress}
+          />
+        )}
       </div>
     );
   }

@@ -57,7 +57,6 @@ export default function HomeCitySelector({ value, onChange, className = "" }: Ho
       }
     } catch (err) {
       setError('Error searching for city. Please try again.');
-      console.error('Geocoding error:', err);
     } finally {
       setIsLoading(false);
     }

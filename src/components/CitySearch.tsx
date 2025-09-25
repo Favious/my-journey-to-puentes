@@ -58,7 +58,6 @@ export default function CitySearch({ onCityAdd }: CitySearchProps) {
       }
     } catch (err) {
       setError('Error searching for city. Please try again.');
-      console.error('Geocoding error:', err);
     } finally {
       setIsLoading(false);
     }

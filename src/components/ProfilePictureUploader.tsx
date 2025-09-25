@@ -53,7 +53,6 @@ export default function ProfilePictureUploader({
       // Update the form with the new URL
       onChange(downloadURL);
     } catch (error) {
-      console.error('Error uploading file:', error);
       setUploadError('Failed to upload image. Please try again.');
     } finally {
       setIsUploading(false);

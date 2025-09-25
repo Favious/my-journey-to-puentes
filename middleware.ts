@@ -67,7 +67,6 @@ const validateSlug = async (slug: string): Promise<boolean> => {
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/validate-slug?slug=${encodeURIComponent(slug)}`);
     
     if (!response.ok) {
-      console.error('Failed to validate slug:', response.status);
       return false;
     }
     
@@ -79,7 +78,6 @@ const validateSlug = async (slug: string): Promise<boolean> => {
     
     return isValid;
   } catch (error) {
-    console.error('Error validating slug:', error);
     return false;
   }
 };

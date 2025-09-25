@@ -110,6 +110,7 @@ export default function EditEngineerPage() {
   const [isEditing, setIsEditing] = useState(true);
   const [isGeneratingColor, setIsGeneratingColor] = useState(false);
   const [colorGenerationStep, setColorGenerationStep] = useState(0);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Form state
   const [formData, setFormData] = useState<JourneyDataInput>({
@@ -287,12 +288,71 @@ export default function EditEngineerPage() {
     }));
   };
 
+  // Validation function
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    // Required fields validation
+    if (!formData.fullName.trim()) {
+      errors.fullName = 'Full name is required';
+    } else if (formData.fullName.length > 25) {
+      errors.fullName = 'Full name must be 25 characters or less';
+    }
+
+    if (!formData.home.city.trim()) {
+      errors.homeCity = 'Home city is required';
+    }
+
+    if (!formData.home.country.trim()) {
+      errors.homeCountry = 'Home country is required';
+    }
+
+    if (!formData.theme.trim()) {
+      errors.theme = 'Theme is required';
+    }
+
+    // Validate milestones - all 6 must have both description and image
+    formData.milestones.forEach((milestone, index) => {
+      if (!milestone.description.trim()) {
+        errors[`milestone_${index}_description`] = `Milestone ${index + 1} description is required`;
+      } else if (milestone.description.length > 400) {
+        errors[`milestone_${index}_description`] = `Milestone ${index + 1} description must be 400 characters or less`;
+      }
+      if (!milestone.imageUrl.trim()) {
+        errors[`milestone_${index}_image`] = `Milestone ${index + 1} image is required`;
+      }
+    });
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Check if form is valid for save button state
+  const isFormValid = () => {
+    return formData.fullName.trim() &&
+           formData.fullName.length <= 30 &&
+           formData.home.city.trim() &&
+           formData.home.country.trim() &&
+           formData.theme.trim() &&
+           formData.milestones.every(milestone => 
+             milestone.description.trim() && 
+             milestone.description.length <= 400 &&
+             milestone.imageUrl.trim()
+           );
+  };
+
 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!engineer) return;
+
+    // Validate form before submitting
+    if (!validateForm()) {
+      setError('Please fill in all required fields');
+      return;
+    }
 
     try {
       setSaving(true);
@@ -400,7 +460,7 @@ export default function EditEngineerPage() {
             {/* Profile Picture - Top Right */}
             <div className="flex flex-col items-end space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Photo 
+                Cover Photo (Optional)
               </label>
               <ProfilePictureUploader
                 value={formData.coverImageUrl}
@@ -429,21 +489,35 @@ export default function EditEngineerPage() {
                     type="text"
                     value={formData.fullName}
                     onChange={(e) => handleInputChange('fullName', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-black ${
+                      validationErrors.fullName 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 focus:ring-blue-500'
+                    }`}
+                    maxLength={30}
                     required
                   />
+                  <div className="flex justify-between items-center mt-1">
+                    {validationErrors.fullName && (
+                      <p className="text-sm text-red-600">{validationErrors.fullName}</p>
+                    )}
+                    <p className={`text-xs ml-auto ${
+                      formData.fullName.length > 30 ? 'text-orange-500' : 'text-gray-500'
+                    }`}>
+                      {formData.fullName.length}/30
+                    </p>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Company *
+                    Current Company (Optional)
                   </label>
                   <input
                     type="text"
                     value={formData.company}
                     onChange={(e) => handleInputChange('company', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                    required
                   />
                 </div>
                 
@@ -456,6 +530,11 @@ export default function EditEngineerPage() {
                   value={formData.home}
                   onChange={(cityData) => handleInputChange('home', cityData)}
                 />
+                {(validationErrors.homeCity || validationErrors.homeCountry) && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {validationErrors.homeCity || validationErrors.homeCountry}
+                  </p>
+                )}
               </div>
 
               {/* Theme */}
@@ -468,7 +547,11 @@ export default function EditEngineerPage() {
                     <select
                       value={formData.theme.startsWith('#') ? 'random' : (formData.theme || 'international-orange')}
                       onChange={(e) => handleInputChange('theme', e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                      className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-black ${
+                        validationErrors.theme 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
                       required
                     >
                       {THEME_OPTIONS.map((option) => (
@@ -482,6 +565,9 @@ export default function EditEngineerPage() {
                       style={{ backgroundColor: getCurrentThemeColor() }}
                     ></div>
                   </div>
+                  {validationErrors.theme && (
+                    <p className="mt-1 text-sm text-red-600">{validationErrors.theme}</p>
+                  )}
                   {isGeneratingColor && (
                     <div className="mt-2 text-center">
                       <div className="text-sm text-gray-600 animate-pulse">
@@ -540,10 +626,30 @@ export default function EditEngineerPage() {
                     <textarea
                       value={milestone.description}
                       onChange={(e) => handleMilestoneChange(index, 'description', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black resize-none"
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 text-black resize-none ${
+                        validationErrors[`milestone_${index}_description`] 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-200 focus:ring-blue-500'
+                      }`}
                       rows={4}
+                      maxLength={400}
                       placeholder={`Describe milestone ${index + 1}...`}
                     />
+                    <div className="flex justify-between items-center mt-1">
+                      <div>
+                        {validationErrors[`milestone_${index}_description`] && (
+                          <p className="text-sm text-red-600">{validationErrors[`milestone_${index}_description`]}</p>
+                        )}
+                        {validationErrors[`milestone_${index}_image`] && (
+                          <p className="text-sm text-red-600">{validationErrors[`milestone_${index}_image`]}</p>
+                        )}
+                      </div>
+                      <p className={`text-xs ${
+                        milestone.description.length > 400 ? 'text-orange-500' : 'text-gray-500'
+                      }`}>
+                        {milestone.description.length}/400
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -560,7 +666,7 @@ export default function EditEngineerPage() {
               </button>
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || !isFormValid()}
                 className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? 'Saving...' : 'Save Profile'}

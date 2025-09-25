@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Image from "next/image";
+import localFont from "next/font/local";
+
+// Load custom font using Next.js font optimization
+const ssBridge = localFont({
+  src: '../../public/fonts/ss-bridge.regular.ttf',
+  variable: '--font-ss-bridge',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: "Journeys to Puentes",
@@ -14,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">
+      <body className={`antialiased ${ssBridge.variable}`}>
         {/* Logo in bottom left corner - clickable to redirect to Antigravity Capital */}
         <div className="fixed -bottom-2 -left-5 md:bottom-5 md:left-5 z-50 mix-blend-difference">
           <a

@@ -1,10 +1,31 @@
 'use client';
 
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import AnimatedStars from './AnimatedStars';
 import { useCallback, useMemo, useRef } from 'react';
-import { COUNTRY_FLAG_COLORS } from '../utils/countryFlags';
+import { COUNTRY_FLAG_COLORS, getFlagForCountry } from '../utils/countryFlags';
 import { generateNameBasedColors } from '../utils/nameBasedColors';
+import * as THREE from 'three';
+
+function EarthCamera() {
+  const { camera } = useThree();
+  
+  useFrame((state) => {
+    // Simulate Earth's rotation - very slow rotation around Y axis
+    const time = state.clock.getElapsedTime();
+    const rotationSpeed = 0.05; // Slow rotation like Earth
+    
+    // Rotate camera around Y axis to simulate Earth's rotation
+    camera.position.x = Math.sin(time * rotationSpeed) * 0.2;
+    camera.position.z = Math.cos(time * rotationSpeed) * 0.2;
+    camera.position.y = 0;
+    
+    // Look at the center to maintain the star field view
+    camera.lookAt(0, 0, 0);
+  });
+  
+  return null;
+}
 
 interface CheckSectionProps {
   id?: string;
@@ -140,13 +161,14 @@ export default function CheckSection({ id = 'check-section', homeCountry, fullNa
   return (
     <div id={id} className="relative w-full h-screen" style={{ backgroundColor: '#ffffff', color: '#000000' }}>
       <div className="absolute inset-0">
-        <Canvas camera={{ position: [0, 0, 6] }} gl={{ antialias: true, alpha: true }}>
-          <AnimatedStars count={1500} radius={12} speed={0.2} color={0x000000} />
+        <Canvas camera={{ position: [0, 0, 5], fov: 75 }} gl={{ antialias: true, alpha: true }}>
+          <EarthCamera />
+          <AnimatedStars count={1200} radius={12} speed={0.1} color={0x000000} />
         </Canvas>
       </div>
       <div className="relative w-full h-full flex items-center justify-center">
         <div className="text-center px-6">
-          <h2 className="text-4xl font-bold mb-6" style={{ fontFamily: 'var(--font-bridge)' }}>Member Pass</h2>
+          <h2 className="text-4xl font-bold mb-6" style={{ fontFamily: 'var(--font-bridge)' }}>Puentes Official Pass</h2>
           <div className="flex items-center justify-center">
             <div
               ref={cardRef}
@@ -181,7 +203,14 @@ export default function CheckSection({ id = 'check-section', homeCountry, fullNa
                     ) : (
                       <span className="holo-badge">RARE</span>
                     )}
-                    <span className="holo-title">Puentes Official Pass</span>
+                    <div className="flex items-center gap-2">
+                      {homeCountry && (
+                        <span className="text-base md:text-lg" role="img" aria-label={`Flag of ${homeCountry}`}>
+                          {getFlagForCountry(homeCountry) || '🌍'}
+                        </span>
+                      )}
+                      <span className="holo-title text-sm md:text-lg">{fullName}</span>
+                    </div>
                   </div>
                   
                   <div className="holo-image">
@@ -202,7 +231,7 @@ export default function CheckSection({ id = 'check-section', homeCountry, fullNa
               </div>
             </div>
           </div>
-          <p className="text-sm mt-8 opacity-70">Hover and move your mouse to see the holographic effect.</p>
+          <p className="hidden md:block text-sm mt-8 opacity-70">Hover and move your mouse to see the holographic effect.</p>
         </div>
       </div>
     </div>

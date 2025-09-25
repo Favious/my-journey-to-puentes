@@ -41,6 +41,7 @@ export default function Home() {
   const [assetLoading, setAssetLoading] = useState(false);
   const [profileComplete, setProfileComplete] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const [slugExists, setSlugExists] = useState<boolean | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [currentAsset, setCurrentAsset] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -154,10 +155,14 @@ export default function Home() {
         
         if (snapshot.empty) {
           console.log('No documents found for slug:', slug);
-          setError('Not found');
-          setMilestones([]);
+          setSlugExists(false);
+          // Redirect to home page if slug doesn't exist
+          router.push('/');
           return;
         }
+        
+        // Slug exists, mark it as valid
+        setSlugExists(true);
         const doc = snapshot.docs[0];
         const data = doc.data() as any;
         const themeValue = data?.theme as string | undefined;
@@ -226,6 +231,27 @@ export default function Home() {
   useEffect(() => {
     setLoading(dataLoading || (profileComplete && assetLoading));
   }, [dataLoading, profileComplete, assetLoading]);
+
+  // Don't render anything until we know if the slug exists
+  if (slugExists === false) {
+    return (
+      <div className="min-h-screen w-full bg-black relative overflow-hidden flex items-center justify-center">
+        <div className="text-white">Redirecting...</div>
+      </div>
+    );
+  }
+
+  // Don't render the main UI until we confirm the slug exists
+  if (slugExists === null) {
+    return (
+      <div className="min-h-screen w-full bg-black relative overflow-hidden flex items-center justify-center">
+        <LoadingSpinner 
+          message="Checking journey..." 
+          className="bg-transparent min-h-0 h-auto"
+        />
+      </div>
+    );
+  }
 
   const handleCityRemove = (_cityName: string) => {};
 

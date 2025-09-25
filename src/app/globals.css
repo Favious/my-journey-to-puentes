@@ -46,6 +46,30 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Make all text and images non-selectable */
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure images are also non-selectable */
+img {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  pointer-events: none;
+}
+
 /* Hide scrollbars across browsers while preserving scroll functionality */
 html, body {
   -ms-overflow-style: none; /* IE and Edge */
@@ -267,7 +291,6 @@ body::-webkit-scrollbar {
 
 .holo-card .holo-title {
   font-weight: 700;
-  font-size: 16px;
   opacity: 0.9;
   letter-spacing: 2px;
   text-transform: uppercase;

@@ -36,8 +36,8 @@ export default function Home() {
         <AnimatedStars count={1200} radius={12} speed={0.1} />
       </Canvas>
       <div className="relative z-10">
-        <h1 className="text-8xl font-bold text-white text-center tracking-wider" style={{ fontFamily: 'var(--font-bridge)'}}>Journeys to Puentes</h1>
-        <h1 className="text-4xl text-white/50 text-center">Successful Stories 🚀</h1>
+        <h1 className="text-4xl md:text-8xl font-bold text-white text-center tracking-wider" style={{ fontFamily: 'var(--font-bridge)'}}>Journeys to Puentes</h1>
+        <h1 className="text-2xl md:text-4xl text-white/50 text-center">Successful Stories 🚀</h1>
       </div>
     </div>
   );

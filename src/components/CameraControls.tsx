@@ -14,7 +14,7 @@ export default function CameraControls({
   if (!hasStarted) return null;
 
   return (
-    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 hidden md:block">
       <button
         onClick={onToggleLock}
         className={`px-3 py-3 rounded-full font-semibold transition-all duration-300 backdrop-blur-sm shadow-lg border ${

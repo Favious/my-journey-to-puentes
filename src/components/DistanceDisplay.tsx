@@ -35,7 +35,7 @@ export default function DistanceDisplay({
   if (!isLastBridge) return null;
 
   return (
-    <div className="absolute top-1/2 left-1/5 transform -translate-y-1/2 z-20">
+    <div className="absolute top-1/2 left-1/5 transform -translate-y-1/2 z-20 hidden md:block">
       <div className="bg-black/20 rounded-xl p-6 shadow-2xl text-center">
         <div className="text-4xl font-bold flex-col flex">
           <ScrambleText 

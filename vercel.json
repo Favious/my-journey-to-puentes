@@ -1,0 +1,32 @@
+{
+  "headers": [
+    {
+      "source": "/fonts/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/:path*\\.(png|jpg|jpeg|gif|webp|svg|ico|avif|mp3|wav|ogg|gltf|bin)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/fonts/(.*)",
+      "destination": "/fonts/$1"
+    }
+  ]
+}

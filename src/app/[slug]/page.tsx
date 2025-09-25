@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useParams } from 'next/navigation';
@@ -18,6 +18,7 @@ import CheckSection from '../../components/CheckSection';
 import { BridgeModelProvider } from '../../components/BridgeModelLoader';
 import { calculateDistance, SAN_FRANCISCO_COORDS } from '../../utils/distanceCalculation';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import AssetPreloader from '../../components/AssetPreloader';
 import { useBridgeManagement } from '../../hooks/useBridgeManagement';
 import { useMilestoneNavigation } from '../../hooks/useMilestoneNavigation';
 
@@ -35,6 +36,10 @@ interface City {
 export default function Home() {
   const params = useParams();
   const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [assetLoading, setAssetLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [currentAsset, setCurrentAsset] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [milestones, setMilestones] = useState<{ description: string; imageUrl: string }[]>([]);
   const [bridgeColor, setBridgeColor] = useState<string>('#c0362c');
@@ -93,6 +98,33 @@ export default function Home() {
     });
   }, [milestones, preloadedImages]);
 
+  // Asset preloading handlers
+  const handleAssetProgress = useCallback((progress: number, assetName: string) => {
+    setLoadingProgress(progress);
+    setCurrentAsset(assetName);
+  }, []);
+
+  // Get dynamic loading message based on progress
+  const getLoadingMessage = useCallback(() => {
+    if (dataLoading) {
+      return "Loading your journey...";
+    }
+    
+    if (loadingProgress < 30) {
+      return "Preparing the world...";
+    } else if (loadingProgress < 60) {
+      return "Building the bridge...";
+    } else if (loadingProgress < 90) {
+      return "Adding final touches...";
+    } else {
+      return "Almost ready...";
+    }
+  }, [dataLoading, loadingProgress]);
+
+  const handleAssetComplete = useCallback(() => {
+    setAssetLoading(false);
+  }, []);
+
   // Fetch journey by slug
   useEffect(() => {
     const load = async () => {
@@ -103,7 +135,7 @@ export default function Home() {
           return;
         }
         setError(null);
-        setLoading(true);
+        setDataLoading(true);
         slug = params.slug as string;
         console.log('Loading slug:', slug);
         
@@ -164,11 +196,16 @@ export default function Home() {
         console.error('Error loading slug:', slug, e);
         setError('Failed to load');
       } finally {
-        setLoading(false);
+        setDataLoading(false);
       }
     };
     load();
   }, [params?.slug]);
+
+  // Update overall loading state
+  useEffect(() => {
+    setLoading(dataLoading || assetLoading);
+  }, [dataLoading, assetLoading]);
 
   const handleCityRemove = (_cityName: string) => {};
 
@@ -250,13 +287,23 @@ export default function Home() {
     };
   }, [showCheck]);
 
-  // Show a full-screen loader while fetching data
+  // Show a full-screen loader while fetching data and loading assets
   if (loading) {
     return (
       <div className="min-h-screen w-full bg-black relative overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center">
-          <LoadingSpinner message="Loading journey..." className="bg-transparent min-h-0 h-auto" />
+          <LoadingSpinner 
+            message={getLoadingMessage()} 
+            className="bg-transparent min-h-0 h-auto"
+            progress={loadingProgress}
+            currentAsset={currentAsset}
+            showProgress={true}
+          />
         </div>
+        <AssetPreloader 
+          onComplete={handleAssetComplete}
+          onProgress={handleAssetProgress}
+        />
       </div>
     );
   }

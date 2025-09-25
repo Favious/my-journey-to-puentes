@@ -22,6 +22,33 @@ export default function RootLayout({
           type="font/ttf"
           crossOrigin="anonymous"
         />
+        <link
+          rel="preload"
+          href="/earthMap.jpeg"
+          as="image"
+        />
+        <link
+          rel="preload"
+          href="/golden_gate_bridge/scene.gltf"
+          as="fetch"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/golden_gate_bridge/scene.bin"
+          as="fetch"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/clickSound.mp3"
+          as="audio"
+        />
+        <link
+          rel="preload"
+          href="/deleteKeySound.mp3"
+          as="audio"
+        />
       </head>
       <body className="antialiased">
         {/* Logo in bottom left corner - clickable to redirect to Antigravity Capital */}

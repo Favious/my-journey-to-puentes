@@ -232,27 +232,6 @@ export default function Home() {
     setLoading(dataLoading || (profileComplete && assetLoading));
   }, [dataLoading, profileComplete, assetLoading]);
 
-  // Don't render anything until we know if the slug exists
-  if (slugExists === false) {
-    return (
-      <div className="min-h-screen w-full bg-black relative overflow-hidden flex items-center justify-center">
-        <div className="text-white">Redirecting...</div>
-      </div>
-    );
-  }
-
-  // Don't render the main UI until we confirm the slug exists
-  if (slugExists === null) {
-    return (
-      <div className="min-h-screen w-full bg-black relative overflow-hidden flex items-center justify-center">
-        <LoadingSpinner 
-          message="Checking journey..." 
-          className="bg-transparent min-h-0 h-auto"
-        />
-      </div>
-    );
-  }
-
   const handleCityRemove = (_cityName: string) => {};
 
   // Attach wheel event listener to milestones container
@@ -332,6 +311,27 @@ export default function Home() {
       root.style.height = '';
     };
   }, [showCheck]);
+
+  // Don't render anything until we know if the slug exists
+  if (slugExists === false) {
+    return (
+      <div className="min-h-screen w-full bg-black relative overflow-hidden flex items-center justify-center">
+        <div className="text-white">Redirecting...</div>
+      </div>
+    );
+  }
+
+  // Don't render the main UI until we confirm the slug exists
+  if (slugExists === null) {
+    return (
+      <div className="min-h-screen w-full bg-black relative overflow-hidden flex items-center justify-center">
+        <LoadingSpinner 
+          message="Checking journey..." 
+          className="bg-transparent min-h-0 h-auto"
+        />
+      </div>
+    );
+  }
 
   // If redirecting, show a simple loading message
   if (redirecting) {

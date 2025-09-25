@@ -21,7 +21,7 @@ export default function RootLayout({
             href="https://antigravity.capital/"
             target="_blank"
             rel="noopener noreferrer"
-            className="block cursor-pointer hover:opacity-80 transition-opacity duration-200 scale-50 md:scale-100"
+            className="block cursor-pointer hover:opacity-80 transition-opacity duration-200 scale-50 md:scale-80"
           >
             <div className="text-center ">
               <p className="text-xs text-white mb-1">Powered by</p>

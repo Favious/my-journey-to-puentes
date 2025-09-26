@@ -56,7 +56,7 @@ export default function MilestoneDisplay({
           <div className="relative">
             {/* Vertical Step Indicator - positioned outside the glass container */}
             {milestones.length > 1 && (
-              <div className="absolute -right-8 top-1/2 transform -translate-y-1/2 z-60">
+              <div className="absolute -right-6 top-1/2 transform -translate-y-1/2 z-60">
                 <div className="flex flex-col items-center space-y-2">
                   {milestones.map((_, index) => (
                     <div
@@ -74,6 +74,25 @@ export default function MilestoneDisplay({
               </div>
             )}
             
+            {/* Scroll Controls - Only for first milestone on web */}
+            {displayedMilestoneIndex === 0 && (
+              <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 z-60 text-center">
+                <div className="flex items-center gap-1 text-white">
+                  <span className="text-lg font-medium">Scroll to navigate</span>
+                  <span className="text-lg text-white/60">or use</span>
+                  <div className="flex flex-col items-center space-y-0.5">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                  <span className="text-white/60">keys</span>
+                </div>
+              </div>
+            )}
+
             <div className="glass-container glass-container--large relative z-50 rounded-xl p-8 min-w-lg max-w-lg text-left overflow-visible">
               <div className="glass-filter"></div>
               <div className="glass-overlay"></div>
@@ -215,7 +234,7 @@ export default function MilestoneDisplay({
                 <button
                   onClick={goToPrevMilestone}
                   disabled={displayedMilestoneIndex === 0}
-                  className={`absolute -top-9 left-1/2 transform -translate-x-1/2 z-60 w-8 h-8 flex items-center justify-center transition-all duration-200 ${
+                  className={`absolute -top-12 left-1/2 transform -translate-x-1/2 z-60 w-8 h-8 flex items-center justify-center transition-all duration-200 ${
                     displayedMilestoneIndex === 0
                       ? 'text-white/40 cursor-not-allowed'
                       : 'text-white hover:text-white/80'
@@ -230,7 +249,7 @@ export default function MilestoneDisplay({
                 <button
                   onClick={goToNextMilestone}
                   disabled={displayedMilestoneIndex === milestones.length - 1}
-                  className={`absolute -bottom-9 left-1/2 transform -translate-x-1/2 z-60 w-8 h-8 flex items-center justify-center transition-all duration-200 ${
+                  className={`absolute -bottom-12 left-1/2 transform -translate-x-1/2 z-60 w-8 h-8 flex items-center justify-center transition-all duration-200 ${
                     displayedMilestoneIndex === milestones.length - 1
                       ? 'text-white/40 cursor-not-allowed'
                       : 'text-white hover:text-white/80'

@@ -21,12 +21,11 @@ export default function LoadingSpinner({
         
         {showProgress && (
           <div className="space-y-3">
-            <div className="w-full bg-gray-800 rounded-full h-2">
+            <div className="w-64 bg-gray-800 rounded-full h-2 relative overflow-hidden mx-auto">
               <div 
-                className="bg-white h-2 rounded-full transition-all duration-300 ease-out"
+                className="bg-white h-2 rounded-full transition-all duration-300 ease-out absolute left-0 top-0"
                 style={{ 
-                  width: '100%',
-                  clipPath: `inset(0 ${100 - Math.min(100, Math.max(0, progress))}% 0 0)`
+                  width: `${Math.min(100, Math.max(0, progress))}%`
                 }}
               ></div>
             </div>

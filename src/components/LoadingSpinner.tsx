@@ -24,7 +24,10 @@ export default function LoadingSpinner({
             <div className="w-full bg-gray-800 rounded-full h-2">
               <div 
                 className="bg-white h-2 rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                style={{ 
+                  width: '100%',
+                  clipPath: `inset(0 ${100 - Math.min(100, Math.max(0, progress))}% 0 0)`
+                }}
               ></div>
             </div>
             {currentAsset && progress < 100 && (

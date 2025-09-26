@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Image from "next/image";
+import { Analytics } from '@vercel/analytics/react';
 
 export const metadata: Metadata = {
   title: "Journeys to Puentes",
@@ -74,6 +75,7 @@ export default function RootLayout({
           </a>
         </div>
         {children}
+        <Analytics />
       </body>
     </html>
   );
